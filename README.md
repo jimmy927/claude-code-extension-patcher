@@ -1,6 +1,8 @@
 # Claude Code VSCode Extension Patcher
 
-A Windows batch script that modifies the Claude Code VSCode extension to add the `--dangerously-skip-permissions` launch argument.
+A Windows PowerShell script that modifies the Claude Code VSCode extension to add the `--dangerously-skip-permissions` launch argument.
+
+**v5 - Multi-Extension Support**: Now patches all Claude Code extensions found in both VSCode and Cursor!
 
 ## ⚠️ DISCLAIMER
 
@@ -38,72 +40,179 @@ This modification bypasses certain permission checks in the Claude Code extensio
 
 ## Features
 
-- **Automatic Backup**: Creates a backup of the original `extension.js` file before making any changes
+- **Multi-Extension Support**: Automatically finds and patches ALL Claude Code extensions in VSCode and Cursor
+- **Auto-Detection**: Searches in standard extension directories for both editors
+- **Version Support**: Handles both old (dist/) and new (root) extension structures
+- **Undo Functionality**: Built-in `--undo` option to restore all backups with one command
+- **Automatic Backup**: Creates a backup of each original `extension.js` file before making changes
 - **Safety Checks**:
-  - Verifies the target file exists
-  - Checks if the file has already been patched
+  - Verifies the target files exist
+  - Checks if files have already been patched
   - Validates the original pattern exists before attempting replacement
-- **User-Friendly**: Clear console output with status messages throughout the patching process
-- **Reversible**: Includes backup file for easy restoration if needed
+- **Detailed Reporting**: Shows summary of patched, skipped, and failed files
+- **User-Friendly**: Clear console output with status messages throughout the process
+- **Reversible**: Includes backup files for easy restoration
 
 ## Requirements
 
-- Windows operating system
+- Windows operating system (currently Windows only - we'd love to receive PRs for Mac & Linux support!)
 - PowerShell (included with Windows)
-- Claude Code VSCode extension installed
+- Claude Code extension installed in VSCode and/or Cursor
 
 ## Usage
 
-1. Locate your Claude Code extension directory:
-   - Typically found at: `%USERPROFILE%\.vscode\extensions\anthropic.claude-code-*\dist\`
-   - Or: `C:\Users\YourUsername\.vscode\extensions\anthropic.claude-code-*\dist\`
+### Patching Extensions
 
-2. Copy `patcher.ps1` to the same directory as `extension.js`
+Run the script from any location:
 
-3. Run the script:
-   - Double-click `patcher.ps1`, or
-   - Right-click and select "Run with PowerShell"
+```powershell
+.\patcher.ps1
+```
 
-4. Follow the on-screen prompts
+Or simply double-click `patcher.ps1`
 
-5. Restart VSCode for changes to take effect
+The script will:
+1. Automatically search for Claude Code extensions in:
+   - `%USERPROFILE%\.vscode\extensions\`
+   - `%USERPROFILE%\.cursor\extensions\`
+2. Find all versions (supports both old and new extension structures)
+3. Patch all found extensions
+4. Show a detailed summary
 
-## Restoring the Original File
+**After patching, restart VSCode/Cursor for changes to take effect.**
 
-If you need to restore the original extension file:
+### Undoing Changes
 
-1. Navigate to the extension directory
-2. Delete the modified `extension.js`
-3. Rename `extension.js.bak` to `extension.js`
-4. Restart VSCode
+To restore all original files from backups:
+
+```powershell
+.\patcher.ps1 -undo
+```
+
+The script will:
+1. Find all Claude Code extensions (same as patch mode)
+2. Restore each one from its `.bak` backup file
+3. Remove the `.bak` files after successful restoration
+4. Show a detailed summary
+
+**After undoing, restart VSCode/Cursor for changes to take effect.**
 
 ## How It Works
 
-1. **Validation**: Checks if `extension.js` exists in the same directory
-2. **Duplicate Check**: Verifies the file hasn't already been patched
-3. **Pattern Match**: Confirms the original arguments array is present
+### Patch Mode (Default)
+1. **Search**: Scans VSCode and Cursor extension directories
+2. **Discovery**: Finds all Claude Code extension versions
+3. **Validation**: For each extension:
+   - Checks if already patched (skips if yes)
+   - Confirms the original pattern exists
 4. **Backup**: Creates `extension.js.bak` (if it doesn't already exist)
 5. **Replacement**: Uses PowerShell regex to modify the arguments array
-6. **Verification**: Confirms the patch was applied successfully
+6. **Summary**: Reports success/skip/error counts
+
+### Undo Mode (`-undo`)
+1. **Search**: Scans VSCode and Cursor extension directories
+2. **Discovery**: Finds all Claude Code extension versions
+3. **Restoration**: For each extension:
+   - Checks if backup exists
+   - Restores original file from `.bak` (by renaming)
+   - Removes `.bak` file after successful restoration
+4. **Summary**: Reports restoration results
+
+## Example Output
+
+### Patch Mode
+```
+==========================================================
+       Claude Code Patcher (v5 - Multi-Extension)
+==========================================================
+This script will modify 'extension.js' to add the
+'--dangerously-skip-permissions' launch argument.
+
+Searching for Claude Code extensions in VSCode and Cursor...
+
+[SEARCH] Looking in VSCode extensions...
+[SEARCH] Looking in Cursor extensions...
+[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.1-universal\extension.js
+[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\extension.js
+
+[INFO] Found 2 extension(s) to process.
+
+A backup of each original file will be created before any changes are made.
+
+Press any key to continue, or close this window to cancel.
+
+==========================================================
+Processing: C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.1-universal\extension.js
+==========================================================
+[DETECT] Detected v2.0.1 (F variable)
+[ACTION] Creating backup as 'extension.js.bak'...
+[SUCCESS] Backup created.
+[ACTION] Patching the file...
+[SUCCESS] File patched successfully!
+
+==========================================================
+Processing: C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\extension.js
+==========================================================
+[DETECT] Detected v2.0.10+ (k variable)
+[ACTION] Creating backup as 'extension.js.bak'...
+[SUCCESS] Backup created.
+[ACTION] Patching the file...
+[SUCCESS] File patched successfully!
+
+==========================================================
+                   PATCH SUMMARY
+==========================================================
+Total extensions found: 2
+Successfully patched:    2
+Skipped (already done): 0
+Errors:                 0
+==========================================================
+
+Press any key to exit...
+```
+
+### Undo Mode
+```
+==========================================================
+          Claude Code Patcher (v5 - UNDO MODE)
+==========================================================
+
+[INFO] Found 2 extension(s) to process.
+
+[ACTION] Restoring from backup...
+[SUCCESS] File restored and backup removed!
+
+==========================================================
+                   UNDO SUMMARY
+Total extensions found: 2
+Successfully restored:   2
+Skipped (no backup):    0
+Errors:                 0
+==========================================================
+```
 
 ## Troubleshooting
 
 **"extension.js not found"**
-- Ensure the script is in the same directory as `extension.js`
-- Verify the Claude Code extension is installed
+- Verify Claude Code extension is installed in VSCode or Cursor
+- Check that you're running the script with proper permissions
 
 **"Already patched"**
-- The file has already been modified by this script
+- The files have already been modified by this script
 - No further action needed
 
 **"Original arguments array not found"**
 - The extension may have been updated to a different version
 - The file structure may have changed
-- Manual inspection of `extension.js` may be required
+- Try running with `-undo` to restore, then update the extension
 
 **Permission Errors**
-- Run the script as Administrator
-- Check file permissions on `extension.js`
+- Run PowerShell as Administrator
+- Check file permissions on extension directories
+
+**"No backup file found" (in undo mode)**
+- The extension was never patched with this script
+- Or the backup file was manually deleted
 
 ## Security Considerations
 
@@ -117,6 +226,8 @@ The `--dangerously-skip-permissions` flag bypasses permission checks. Consider t
 ## Credit
 
 Original implementation: [GitHub Issue Comment](https://github.com/anthropics/claude-code/issues/8539#issuecomment-3389961296)
+
+Created by: [@lifodetails](https://github.com/lifodetails)
 
 ## License
 
