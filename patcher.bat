@@ -1,4 +1,4 @@
-u/echo off
+@echo off
 setlocal enabledelayedexpansion
 
 :: Set window title
@@ -12,35 +12,70 @@ set "replacement_string=k=[\"--dangerously-skip-permissions\",\"--output-format\
 set "original_pattern=k=\[\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"\]"
 set "replacement_pattern=k=\[\"--dangerously-skip-permissions\",\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"\]"
 
-:: Define file names and paths
+:: Define file names
 set "target_file=extension.js"
 set "backup_file=%target_file%.bak"
-set "file_path=%~dp0%target_file%"
-set "backup_path=%~dp0%backup_file%"
+set "file_path="
+set "backup_path="
 
 echo.
 echo ==========================================================
-echo           Claude Code VSCode Patcher (v3)
+echo           Claude Code Patcher (v4 - Auto-detect)
 echo ==========================================================
 echo This script will modify '%target_file%' to add the
 echo '--dangerously-skip-permissions' launch argument.
 echo.
-echo A backup of the original file will be created as
-echo '%backup_file%' before any changes are made.
+echo Searching for Claude Code extension in VSCode and Cursor...
 echo.
-echo Make sure this script is in the same directory as
-echo '%target_file%'.
+
+:: 1. Search for extension.js in typical locations
+:: Check if file exists in current directory first
+if exist "%~dp0%target_file%" (
+    set "file_path=%~dp0%target_file%"
+    echo [FOUND] Extension in current directory
+    goto found_file
+)
+
+:: Search in VSCode extensions
+echo [SEARCH] Looking in VSCode extensions...
+for /d %%i in ("%USERPROFILE%\.vscode\extensions\anthropics.claude-code-*") do (
+    if exist "%%i\dist\%target_file%" (
+        set "file_path=%%i\dist\%target_file%"
+        echo [FOUND] %%i\dist\%target_file%
+        goto found_file
+    )
+)
+
+:: Search in Cursor extensions
+echo [SEARCH] Looking in Cursor extensions...
+for /d %%i in ("%USERPROFILE%\.cursor\extensions\anthropics.claude-code-*") do (
+    if exist "%%i\dist\%target_file%" (
+        set "file_path=%%i\dist\%target_file%"
+        echo [FOUND] %%i\dist\%target_file%
+        goto found_file
+    )
+)
+
+:: If not found anywhere
+echo [ERROR] '%target_file%' not found in any of the following locations:
+echo   - Current directory
+echo   - %USERPROFILE%\.vscode\extensions\anthropics.claude-code-*\dist\
+echo   - %USERPROFILE%\.cursor\extensions\anthropics.claude-code-*\dist\
+echo.
+echo Please ensure Claude Code extension is installed in VSCode or Cursor.
+goto end
+
+:found_file
+set "backup_path=%file_path%.bak"
+echo.
+echo [INFO] Target file: %file_path%
+echo [INFO] Backup will be: %backup_path%
+echo.
+echo A backup of the original file will be created before any changes are made.
 echo.
 echo Press any key to continue, or close this window to cancel.
 pause > nul
 echo.
-
-:: 1. Check if extension.js exists
-if not exist "%file_path%" (
-    echo [ERROR] '%target_file%' not found in the current directory.
-    echo Please place this script next to the file you want to patch.
-    goto end
-)
 
 :: 2. Check if file has already been patched
 powershell -NoProfile -Command "if ((Get-Content -Raw -Path '%file_path%') -match '%replacement_pattern%') { exit 0 } else { exit 1 }"
