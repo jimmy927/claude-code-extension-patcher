@@ -1,238 +1,207 @@
-# Claude Code VSCode Extension Patcher
+# Claude Code Ultra YOLO Patcher
 
-A Windows PowerShell script that modifies the Claude Code VSCode extension to add the `--dangerously-skip-permissions` launch argument.
+**🚀 100% NO PERMISSION PROMPTS MODE - NEVER ASK FOR ANYTHING! 🚀**
 
-**v5 - Multi-Extension Support**: Now patches all Claude Code extensions found in both VSCode and Cursor!
+A Windows PowerShell script that **completely disables ALL permission prompts** in the Claude Code VSCode/Cursor extension.
 
-## ⚠️ DISCLAIMER
+## ⚠️ ULTRA DISCLAIMER ⚠️
 
-**USE AT YOUR OWN RISK**
+**EXTREME USE AT YOUR OWN RISK**
 
-This script modifies the Claude Code VSCode extension files. By using this patcher, you acknowledge and agree that:
+This script makes **AGGRESSIVE modifications** to Claude Code extension files. By using this Ultra YOLO patcher:
 
-- **NO WARRANTY**: This software is provided "as is" without warranty of any kind, either expressed or implied.
-- **NO LIABILITY**: The authors and contributors are not liable for any damages, data loss, security issues, or other consequences resulting from the use of this script.
-- **MODIFICATION RISKS**: Modifying extension files may cause instability, unexpected behavior, or break functionality.
-- **NO OFFICIAL SUPPORT**: This is an unofficial modification and is not supported or endorsed by Anthropic or the Claude Code development team.
-- **YOUR RESPONSIBILITY**: You are solely responsible for any consequences of using this script, including potential security implications of bypassing permission checks.
+- **NO WARRANTY**: Provided "as is" - things might break!
+- **NO LIABILITY**: You're on your own if something goes wrong
+- **SECURITY RISK**: This bypasses ALL safety checks - Claude can do ANYTHING
+- **NO OFFICIAL SUPPORT**: Completely unofficial and unsupported
+- **YOUR RESPONSIBILITY**: You accept full responsibility for ALL consequences
 
-**By using this script, you accept full responsibility for any and all consequences.**
+**This is the nuclear option. Only use if you know what you're doing.**
 
 ---
 
 ## What This Script Does
 
-This patcher modifies the `extension.js` file of the Claude Code VSCode extension by adding the `--dangerously-skip-permissions` flag to the launch arguments array.
+The **Ultra YOLO Patcher** makes **THREE critical modifications**:
 
-**Specifically, it changes:**
+### 1. CLI Flag Injection
+Adds `--dangerously-skip-permissions` to the CLI launch arguments:
 
 ```javascript
+// Before
 k=["--output-format","stream-json","--verbose","--input-format","stream-json"]
-```
 
-**To:**
-
-```javascript
+// After
 k=["--dangerously-skip-permissions","--output-format","stream-json","--verbose","--input-format","stream-json"]
 ```
 
-This modification bypasses certain permission checks in the Claude Code extension.
+### 2. Permission Function Bypass
+Replaces the `requestToolPermission` function to always return "allow":
+
+```javascript
+// Before
+async requestToolPermission(e,r,a,s){
+  return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:a,suggestions:s})).result
+}
+
+// After
+async requestToolPermission(e,r,a,s){
+  return{behavior:"allow"}
+}
+```
+
+### 3. Deny → Allow Conversion
+Changes all `behavior:"deny"` to `behavior:"allow"` throughout the extension.
+
+**Result:** Claude Code will **NEVER** show a permission prompt. ALL commands are auto-approved instantly. 🔥
 
 ## Features
 
-- **Multi-Extension Support**: Automatically finds and patches ALL Claude Code extensions in VSCode and Cursor
-- **Auto-Detection**: Searches in standard extension directories for both editors
-- **Version Support**: Handles both old (dist/) and new (root) extension structures
-- **Undo Functionality**: Built-in `--undo` option to restore all backups with one command
-- **Automatic Backup**: Creates a backup of each original `extension.js` file before making changes
-- **Safety Checks**:
-  - Verifies the target files exist
-  - Checks if files have already been patched
-  - Validates the original pattern exists before attempting replacement
-- **Detailed Reporting**: Shows summary of patched, skipped, and failed files
-- **User-Friendly**: Clear console output with status messages throughout the process
-- **Reversible**: Includes backup files for easy restoration
+- 🎯 **Complete Permission Bypass**: Never see another prompt
+- 🔍 **Auto-Detection**: Finds all Claude Code extensions in VSCode and Cursor
+- 💾 **Automatic Backups**: Creates `.bak` files before patching
+- ↩️ **Reversible**: Use `-undo` to restore original behavior
+- 📊 **Detailed Reports**: Clear status for each patch applied
+- 🛡️ **Safe Restoration**: Undo mode removes backups after successful restoration
 
 ## Requirements
 
-- Windows operating system (currently Windows only - we'd love to receive PRs for Mac & Linux support!)
-- PowerShell (included with Windows)
+- Windows (PowerShell script)
 - Claude Code extension installed in VSCode and/or Cursor
+- Administrator privileges (recommended)
 
 ## Usage
 
-### Patching Extensions
-
-Run the script from any location:
+### 🔥 Apply Ultra YOLO Mode
 
 ```powershell
-.\patcher.ps1
+.\ultra-yolo-patcher.ps1
 ```
 
-Or simply double-click `patcher.ps1`
+Or double-click `ultra-yolo-patcher.ps1`
 
-The script will:
-1. Automatically search for Claude Code extensions in:
-   - `%USERPROFILE%\.vscode\extensions\`
-   - `%USERPROFILE%\.cursor\extensions\`
-2. Find all versions (supports both old and new extension structures)
-3. Patch all found extensions
-4. Show a detailed summary
+**IMPORTANT: Restart Cursor/VSCode completely after patching!**
 
-**After patching, restart VSCode/Cursor for changes to take effect.**
-
-### Undoing Changes
-
-To restore all original files from backups:
+### ↩️ Restore Normal Behavior
 
 ```powershell
-.\patcher.ps1 -undo
+.\ultra-yolo-patcher.ps1 -undo
 ```
 
-The script will:
-1. Find all Claude Code extensions (same as patch mode)
-2. Restore each one from its `.bak` backup file
-3. Remove the `.bak` files after successful restoration
-4. Show a detailed summary
-
-**After undoing, restart VSCode/Cursor for changes to take effect.**
+**IMPORTANT: Restart Cursor/VSCode completely after undoing!**
 
 ## How It Works
 
 ### Patch Mode (Default)
-1. **Search**: Scans VSCode and Cursor extension directories
-2. **Discovery**: Finds all Claude Code extension versions
-3. **Validation**: For each extension:
-   - Checks if already patched (skips if yes)
-   - Confirms the original pattern exists
-4. **Backup**: Creates `extension.js.bak` (if it doesn't already exist)
-5. **Replacement**: Uses PowerShell regex to modify the arguments array
-6. **Summary**: Reports success/skip/error counts
+1. Searches for Claude Code extensions in VSCode and Cursor
+2. Creates backup (`.bak`) of each `extension.js`
+3. Applies three patches:
+   - **Patch 1**: Adds `--dangerously-skip-permissions` flag
+   - **Patch 2**: Replaces permission request function
+   - **Patch 3**: Changes `deny` behaviors to `allow`
+4. Reports results
 
 ### Undo Mode (`-undo`)
-1. **Search**: Scans VSCode and Cursor extension directories
-2. **Discovery**: Finds all Claude Code extension versions
-3. **Restoration**: For each extension:
-   - Checks if backup exists
-   - Restores original file from `.bak` (by renaming)
-   - Removes `.bak` file after successful restoration
-4. **Summary**: Reports restoration results
+1. Finds all Claude Code extensions
+2. Restores each from `.bak` backup
+3. Removes `.bak` files
+4. Reports results
 
 ## Example Output
 
-### Patch Mode
 ```
 ==========================================================
-       Claude Code Patcher (v5 - Multi-Extension)
+       Claude Code Ultra YOLO Patcher
+       100% NO PERMISSION PROMPTS MODE
 ==========================================================
-This script will modify 'extension.js' to add the
-'--dangerously-skip-permissions' launch argument.
 
-Searching for Claude Code extensions in VSCode and Cursor...
+Searching for Claude Code extensions...
 
-[SEARCH] Looking in VSCode extensions...
-[SEARCH] Looking in Cursor extensions...
-[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.1-universal\extension.js
 [FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\extension.js
 
-[INFO] Found 2 extension(s) to process.
+[INFO] Found 1 extension(s)
 
-A backup of each original file will be created before any changes are made.
+This will modify the extension to NEVER ask for permissions.
+ALL commands will be auto-approved. 100% YOLO MODE!
 
 Press any key to continue, or close this window to cancel.
 
 ==========================================================
-Processing: C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.1-universal\extension.js
-==========================================================
-[DETECT] Detected v2.0.1 (F variable)
-[ACTION] Creating backup as 'extension.js.bak'...
-[SUCCESS] Backup created.
-[ACTION] Patching the file...
-[SUCCESS] File patched successfully!
-
-==========================================================
 Processing: C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\extension.js
 ==========================================================
-[DETECT] Detected v2.0.10+ (k variable)
-[ACTION] Creating backup as 'extension.js.bak'...
-[SUCCESS] Backup created.
-[ACTION] Patching the file...
-[SUCCESS] File patched successfully!
+[ACTION] Creating backup...
+[SUCCESS] Backup created
+[ACTION] Applying ULTRA YOLO patches...
+  [PATCH 1] Adding --dangerously-skip-permissions flag
+  [PATCH 2] Disabling permission prompts (auto-allow ALL)
+  [PATCH 3] Changing deny behaviors to allow
+
+[ACTION] Writing patched file...
+[SUCCESS] Ultra YOLO patches applied!
 
 ==========================================================
-                   PATCH SUMMARY
+                   SUMMARY
 ==========================================================
-Total extensions found: 2
-Successfully patched:    2
-Skipped (already done): 0
-Errors:                 0
+Total extensions found: 1
+Successfully patched:    1
+Skipped:                 0
+Errors:                  0
 ==========================================================
+
+IMPORTANT: RESTART Cursor completely to apply changes!
+
+After restart, Claude Code will NEVER ask for permissions.
+
+To undo: .\ultra-yolo-patcher.ps1 -undo
 
 Press any key to exit...
 ```
 
-### Undo Mode
-```
-==========================================================
-          Claude Code Patcher (v5 - UNDO MODE)
-==========================================================
-
-[INFO] Found 2 extension(s) to process.
-
-[ACTION] Restoring from backup...
-[SUCCESS] File restored and backup removed!
-
-==========================================================
-                   UNDO SUMMARY
-Total extensions found: 2
-Successfully restored:   2
-Skipped (no backup):    0
-Errors:                 0
-==========================================================
-```
-
 ## Troubleshooting
 
-**"extension.js not found"**
-- Verify Claude Code extension is installed in VSCode or Cursor
-- Check that you're running the script with proper permissions
+**"Extension not found"**
+- Verify Claude Code is installed
+- Check you have access to extension directories
 
-**"Already patched"**
-- The files have already been modified by this script
-- No further action needed
+**"Pattern not found"**
+- Extension may be a different version
+- Try running with `-undo` first, then update Claude Code
 
-**"Original arguments array not found"**
-- The extension may have been updated to a different version
-- The file structure may have changed
-- Try running with `-undo` to restore, then update the extension
+**"Already YOLO?"**
+- Already patched! No changes needed
 
 **Permission Errors**
 - Run PowerShell as Administrator
-- Check file permissions on extension directories
-
-**"No backup file found" (in undo mode)**
-- The extension was never patched with this script
-- Or the backup file was manually deleted
+- Check file permissions
 
 ## Security Considerations
 
-The `--dangerously-skip-permissions` flag bypasses permission checks. Consider the following:
+⚠️ **THIS IS THE NUCLEAR OPTION** ⚠️
 
-- This may expose your system to security risks
-- Only use this if you understand the implications
-- Keep your system and VSCode updated
-- Use caution when working with sensitive files or data
+With Ultra YOLO mode enabled:
+- Claude can run ANY command without asking
+- Docker commands execute immediately
+- File modifications happen instantly
+- System commands run without confirmation
 
-## Credit
+**Only use this if:**
+- You fully trust Claude
+- You understand the risks
+- You're working in a safe environment
+- You accept full responsibility
 
-Original implementation: [GitHub Issue Comment](https://github.com/anthropics/claude-code/issues/8539#issuecomment-3389961296)
+## Original Work
+
+Based on the original patcher concept from: [GitHub Issue](https://github.com/anthropics/claude-code/issues/8539#issuecomment-3389961296)
 
 Created by: [@lifodetails](https://github.com/lifodetails)
 
+Ultra YOLO enhancements: More aggressive permission bypassing
+
 ## License
 
-This script is provided as-is for educational and convenience purposes. Use at your own discretion and risk.
+Provided as-is for educational purposes. **USE AT YOUR OWN RISK.**
 
 ---
 
-**Remember: You are solely responsible for any consequences of using this modification.**
+**Remember: With great power comes great responsibility. You've been warned! 🚀**
