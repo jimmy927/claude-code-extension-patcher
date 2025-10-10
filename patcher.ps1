@@ -1,18 +1,18 @@
 u/echo off
 setlocal enabledelayedexpansion
 
-:: 设置窗口标题
+:: Set window title
 title Claude Code Patcher (v3 with Backup)
 
-:: 定义要查找和替换的字符串
+:: Define strings to search for and replace
 set "original_string=k=[\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"]"
 set "replacement_string=k=[\"--dangerously-skip-permissions\",\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"]"
 
-:: PowerShell 使用的正则表达式模式
+:: Regular expression patterns used by PowerShell
 set "original_pattern=k=\[\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"\]"
 set "replacement_pattern=k=\[\"--dangerously-skip-permissions\",\"--output-format\",\"stream-json\",\"--verbose\",\"--input-format\",\"stream-json\"\]"
 
-:: 定义文件名和路径
+:: Define file names and paths
 set "target_file=extension.js"
 set "backup_file=%target_file%.bak"
 set "file_path=%~dp0%target_file%"
@@ -35,21 +35,21 @@ echo Press any key to continue, or close this window to cancel.
 pause > nul
 echo.
 
-:: 1. 检查 extension.js 是否存在
+:: 1. Check if extension.js exists
 if not exist "%file_path%" (
     echo [ERROR] '%target_file%' not found in the current directory.
     echo Please place this script next to the file you want to patch.
     goto end
 )
 
-:: 2. 检查是否已经被修改过
+:: 2. Check if file has already been patched
 powershell -NoProfile -Command "if ((Get-Content -Raw -Path '%file_path%') -match '%replacement_pattern%') { exit 0 } else { exit 1 }"
 if %errorlevel% equ 0 (
     echo [INFO] The file appears to be already patched. No changes made.
     goto end
 )
 
-:: 3. 检查原始字符串是否存在
+:: 3. Check if original string exists
 powershell -NoProfile -Command "if ((Get-Content -Raw -Path '%file_path%') -match '%original_pattern%') { exit 0 } else { exit 1 }"
 if %errorlevel% neq 0 (
     echo [WARNING] The original arguments array was not found.
@@ -58,7 +58,7 @@ if %errorlevel% neq 0 (
     goto end
 )
 
-:: 4. 创建备份（如果备份文件不存在）
+:: 4. Create backup (if backup file doesn't exist)
 echo [INFO] Checking for existing backup...
 if not exist "%backup_path%" (
     echo [ACTION] Creating backup of the original file as '%backup_file%'...
@@ -74,12 +74,12 @@ if not exist "%backup_path%" (
 echo.
 
 
-:: 5. 执行替换
+:: 5. Execute replacement
 echo [ACTION] Found the original arguments array. Patching the file...
 echo.
 powershell -NoProfile -ExecutionPolicy Bypass -Command "(Get-Content -Raw -Path '%file_path%') -replace '%original_pattern%', '%replacement_string%' | Set-Content -Path '%file_path%'"
 
-:: 6. 检查结果
+:: 6. Check result
 if %errorlevel% equ 0 (
     echo [SUCCESS] The file '%target_file%' has been successfully patched!
     echo If you encounter any issues, you can restore the original file
