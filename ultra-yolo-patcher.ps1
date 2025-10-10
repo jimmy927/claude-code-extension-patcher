@@ -2,10 +2,35 @@
 # 100% NO PERMISSION PROMPTS MODE - NEVER ASK FOR ANYTHING!
 
 param(
-    [switch]$undo
+    [switch]$undo,
+    [switch]$repatch,
+    [switch]$yes
 )
 
 $host.UI.RawUI.WindowTitle = "Claude Code Ultra YOLO Patcher"
+
+# Handle -repatch flag (undo + patch)
+if ($repatch) {
+    Write-Host ""
+    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host "       Claude Code Ultra YOLO Patcher - REPATCH MODE" -ForegroundColor Yellow
+    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Running UNDO first..." -ForegroundColor Yellow
+    Write-Host ""
+
+    # Run undo
+    & $PSCommandPath -undo -yes
+
+    Write-Host ""
+    Write-Host "Now running PATCH..." -ForegroundColor Yellow
+    Write-Host ""
+
+    # Run patch
+    & $PSCommandPath -yes
+
+    exit
+}
 
 Write-Host ""
 Write-Host "==========================================================" -ForegroundColor Cyan
@@ -65,17 +90,19 @@ Write-Host ""
 Write-Host "[INFO] Found $($filePaths.Count) extension(s)" -ForegroundColor Cyan
 Write-Host ""
 
-if ($undo) {
-    Write-Host "This will restore the original files from backups." -ForegroundColor Yellow
-} else {
-    Write-Host "This will modify the extension to NEVER ask for permissions." -ForegroundColor Yellow
-    Write-Host "ALL commands will be auto-approved. 100% YOLO MODE!" -ForegroundColor Red
-}
+if (-not $yes) {
+    if ($undo) {
+        Write-Host "This will restore the original files from backups." -ForegroundColor Yellow
+    } else {
+        Write-Host "This will modify the extension to NEVER ask for permissions." -ForegroundColor Yellow
+        Write-Host "ALL commands will be auto-approved. 100% YOLO MODE!" -ForegroundColor Red
+    }
 
-Write-Host ""
-Write-Host "Press any key to continue, or close this window to cancel."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-Write-Host ""
+    Write-Host ""
+    Write-Host "Press any key to continue, or close this window to cancel."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    Write-Host ""
+}
 
 $patchedCount = 0
 $skippedCount = 0
@@ -244,8 +271,11 @@ if (-not $undo -and $patchedCount -gt 0) {
 
 if (-not $undo) {
     Write-Host "To undo: .\ultra-yolo-patcher.ps1 -undo" -ForegroundColor Yellow
+    Write-Host "To repatch: .\ultra-yolo-patcher.ps1 -repatch" -ForegroundColor Yellow
 }
 
-Write-Host ""
-Write-Host "Press any key to exit..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+if (-not $yes) {
+    Write-Host ""
+    Write-Host "Press any key to exit..."
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+}
