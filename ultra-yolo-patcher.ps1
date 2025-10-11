@@ -183,7 +183,9 @@ if ($undo) {
             Write-Host "  [PATCH 2] Disabling permission prompts (auto-allow ALL) + ONE LOG FILE" -ForegroundColor Cyan
 
             # Create logging code that writes to ONE log file (works in both CommonJS and ES modules)
-            $logCode = 'async requestToolPermission(e,r,a,s){try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\n";fs.appendFileSync("C:/Users/jimmy/yolo.log",log);}catch(err){}return{behavior:"allow"}}'
+            $logFile = Join-Path $env:TEMP "claude-code-yolo.log"
+            $logFileEscaped = $logFile -replace '\\', '/'
+            $logCode = 'async requestToolPermission(e,r,a,s){try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\n";fs.appendFileSync("' + $logFileEscaped + '",log);}catch(err){}return{behavior:"allow"}}'
 
             $fileContent = $fileContent -replace 'async requestToolPermission\(([^)]*)\)\{return\(await this\.sendRequest\([^)]*,\{type:"tool_permission_request",toolName:[^}]*\}\)\)\.result\}', $logCode
             $madeChanges = $true
@@ -191,7 +193,7 @@ if ($undo) {
             Write-Host "  [PATCH 2] Pattern not found or already applied" -ForegroundColor Yellow
         }
 
-        # Patch 3: Change any "deny" behavior to "allow"
+        # Patch 3: Change any "deny" behavior to "allow" AND add logging
         if ($fileContent -match 'behavior:"deny"') {
             Write-Host "  [PATCH 3] Changing deny behaviors to allow" -ForegroundColor Cyan
             $fileContent = $fileContent -replace 'behavior:"deny"', 'behavior:"allow"'
@@ -206,19 +208,21 @@ if ($undo) {
 
             # Get filename for logging
             $fileName = Split-Path -Leaf $filePath
+            $logFile = Join-Path $env:TEMP "claude-code-yolo.log"
+            $logFileEscaped = $logFile -replace '\\', '/'
 
             # Check if file starts with shebang (#!/usr/bin/env node)
             if ($fileContent -match '^#!/usr/bin/env node') {
                 # ES module with shebang (cli.js) - NO console.log, it breaks JSON output!
-                $startupLog = '(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("C:/Users/jimmy/yolo.log",log);}catch(e){}})();'
+                $startupLog = '(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("' + $logFileEscaped + '",log);}catch(e){}})();'
                 $fileContent = $fileContent -replace '^(#!/usr/bin/env node\r?\n)', "`$1$startupLog`n"
             } elseif ($fileContent -match '^import\{') {
                 # ES module without shebang - NO console.log
-                $startupLog = '(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("C:/Users/jimmy/yolo.log",log);}catch(e){}})();'
+                $startupLog = '(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("' + $logFileEscaped + '",log);}catch(e){}})();'
                 $fileContent = $startupLog + $fileContent
             } else {
                 # CommonJS version (extension.js) - can use console.log safely
-                $startupLog = 'try{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("C:/Users/jimmy/yolo.log",log);console.log("YOLO LOADED: ' + $fileName + '");}catch(e){console.error("YOLO ERROR in ' + $fileName + ':",e);}'
+                $startupLog = 'try{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: ' + $fileName + '\n";fs.appendFileSync("' + $logFileEscaped + '",log);console.log("YOLO LOADED: ' + $fileName + '");}catch(e){console.error("YOLO ERROR in ' + $fileName + ':",e);}'
                 $fileContent = $startupLog + $fileContent
             }
 
@@ -265,7 +269,8 @@ if (-not $undo -and $patchedCount -gt 0) {
     Write-Host "After restart, Claude Code will NEVER ask for permissions." -ForegroundColor Green
     Write-Host ""
     Write-Host "ALL LOGS written to ONE FILE:" -ForegroundColor Cyan
-    Write-Host "  C:\Users\jimmy\yolo.log" -ForegroundColor White
+    $logFile = Join-Path $env:TEMP "claude-code-yolo.log"
+    Write-Host "  $logFile" -ForegroundColor White
     Write-Host ""
 }
 
