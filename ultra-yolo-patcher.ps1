@@ -203,8 +203,8 @@ log.close()
         [Console]::WriteLine("Running patcher in WSL (output to temp file)...")
         [Console]::WriteLine("")
 
-        # Run patcher - output goes to file
-        $Wrapper | wsl python3 -u - 2>&1 | Out-Null
+        # Run patcher - output goes to file (silent mode)
+        $null = $Wrapper | wsl python3 -u -
 
         # Read and display output from Windows
         if (Test-Path $WinLogFile) {
@@ -223,10 +223,6 @@ log.close()
             [Console]::WriteLine("[SUCCESS] WSL patching completed!")
             [Console]::WriteLine("")
         }
-
-        # Note about terminal corruption (known WSL issue)
-        [Console]::WriteLine("NOTE: WSL may cause terminal display issues. Use -skipWsl to patch Windows only.")
-        [Console]::WriteLine("")
     }
 } else {
     [Console]::WriteLine("")
