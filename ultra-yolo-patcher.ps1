@@ -162,10 +162,19 @@ if (-not $skipWsl) {
         [Console]::WriteLine("WSL path:     $WslScriptPath")
         [Console]::WriteLine("")
 
-        # WORKAROUND: Running Python .py files from WSL corrupts PowerShell terminal
-        # SOLUTION: Pipe Python code via stdin to python3 (avoids file execution)
+        # WORKAROUND: Running Python via WSL corrupts PowerShell terminal
+        # SOLUTION: Redirect Python output to file, read from Windows
         [Console]::WriteLine("Reading Python script...")
         $PythonCode = Get-Content $PythonScript -Raw -Encoding UTF8
+
+        # Use Windows temp file for output
+        $WinLogFile = Join-Path $env:TEMP "claude-patcher-wsl-output.log"
+        $EscapedLogPath = $WinLogFile -replace '\\', '\\'
+        $WslLogFile = (wsl wslpath -u `"$EscapedLogPath`" 2>&1 | Select-Object -First 1)
+        if ($WslLogFile) { $WslLogFile = $WslLogFile.Trim() }
+
+        # Remove old log
+        if (Test-Path $WinLogFile) { Remove-Item $WinLogFile }
 
         # Build sys.argv
         $SysArgv = "['$WslScriptPath'"
@@ -174,19 +183,35 @@ if (-not $skipWsl) {
         }
         $SysArgv += "]"
 
-        # Create wrapper that sets sys.argv before executing script
+        # Wrapper redirects all output to log file
         $Wrapper = @"
 import sys
 sys.argv = $SysArgv
-# Execute the actual script below:
+
+# Redirect stdout/stderr to log file
+log = open('$WslLogFile', 'w', encoding='utf-8')
+sys.stdout = log
+sys.stderr = log
+
+# Execute the actual script
 $PythonCode
+
+# Close log
+log.close()
 "@
 
-        [Console]::WriteLine("Running patcher in WSL (stdin mode to prevent terminal corruption)...")
+        [Console]::WriteLine("Running patcher in WSL (output to temp file)...")
         [Console]::WriteLine("")
 
-        # Pipe to WSL python3 stdin - prevents terminal corruption!
-        $Wrapper | wsl python3 -u -
+        # Run patcher - output goes to file
+        $Wrapper | wsl python3 -u - 2>&1 | Out-Null
+
+        # Read and display output from Windows
+        if (Test-Path $WinLogFile) {
+            Get-Content $WinLogFile
+            [Console]::WriteLine("")
+            Remove-Item $WinLogFile
+        }
 
         if ($LASTEXITCODE -ne 0) {
             [Console]::WriteLine("")
@@ -198,6 +223,10 @@ $PythonCode
             [Console]::WriteLine("[SUCCESS] WSL patching completed!")
             [Console]::WriteLine("")
         }
+
+        # Note about terminal corruption (known WSL issue)
+        [Console]::WriteLine("NOTE: WSL may cause terminal display issues. Use -skipWsl to patch Windows only.")
+        [Console]::WriteLine("")
     }
 } else {
     [Console]::WriteLine("")
