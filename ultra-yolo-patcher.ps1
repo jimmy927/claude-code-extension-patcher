@@ -60,29 +60,23 @@ if (-not (Test-Path $PythonScript)) {
     exit 1
 }
 
-# Build arguments
+# Build arguments for Windows
 $PythonArgs = @()
 if ($undo) { $PythonArgs += "--undo" }
 if ($repatch) { $PythonArgs += "--repatch" }
 if ($yes) { $PythonArgs += "-y" }
 
+# Build arguments for WSL (always add -y since stdin is used for piping)
+$WslArgs = @()
+if ($undo) { $WslArgs += "--undo" }
+if ($repatch) { $WslArgs += "--repatch" }
+$WslArgs += "-y"  # Always skip prompts in WSL (stdin unavailable)
+
 $ArgString = $PythonArgs -join " "
 
+[Console]::WriteLine("Claude Code YOLO Patcher - Dual Mode (Windows + WSL)")
 [Console]::WriteLine("")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("  Claude Code Ultra YOLO Patcher - DUAL MODE")
-[Console]::WriteLine("  Windows + WSL Python Patcher")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("")
-
-# ============================================================================
-# WINDOWS PATCHING
-# ============================================================================
-[Console]::WriteLine("")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("  [1/2] PATCHING WINDOWS INSTALLATION")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("")
+[Console]::WriteLine("[1/2] Windows...")
 
 try {
     # Try python3 first, then python
@@ -97,37 +91,22 @@ try {
         exit 1
     }
 
-    [Console]::WriteLine("Using Python: $($PythonCmd.Source)")
-    [Console]::WriteLine("")
-
     # Run Python patcher for Windows
     & $PythonCmd.Source $PythonScript @PythonArgs
 
     if ($LASTEXITCODE -ne 0) {
-        [Console]::WriteLine("")
-        [Console]::WriteLine("ERROR: Windows patching failed with exit code $LASTEXITCODE")
+        [Console]::WriteLine("ERROR: Windows failed (exit code $LASTEXITCODE)")
         exit $LASTEXITCODE
     }
 
-    [Console]::WriteLine("")
-    [Console]::WriteLine("[SUCCESS] Windows patching completed!")
-    [Console]::WriteLine("")
-
 } catch {
-    [Console]::WriteLine("")
     [Console]::WriteLine("ERROR: Windows patching failed: $_")
     exit 1
 }
 
-# ============================================================================
-# WSL PATCHING
-# ============================================================================
 if (-not $skipWsl) {
     [Console]::WriteLine("")
-    [Console]::WriteLine("============================================================")
-    [Console]::WriteLine("  [2/2] PATCHING WSL INSTALLATION")
-    [Console]::WriteLine("============================================================")
-    [Console]::WriteLine("")
+    [Console]::WriteLine("[2/2] WSL...")
 
     # Check if WSL is available
     $WslAvailable = $false
@@ -139,36 +118,23 @@ if (-not $skipWsl) {
     }
 
     if (-not $WslAvailable) {
-        [Console]::WriteLine("WSL not detected - skipping WSL patching")
-        [Console]::WriteLine("")
+        [Console]::WriteLine("WSL not detected - skipped")
     } else {
-        [Console]::WriteLine("WSL detected - running patcher in WSL...")
-        [Console]::WriteLine("")
-
-        # Convert Windows path to WSL path for sys.argv[0]
+        # Convert Windows path to WSL path
         $EscapedPath = $PythonScript -replace '\\', '\\'
         $WslScriptPath = (wsl wslpath -u `"$EscapedPath`" 2>&1 | Select-Object -First 1)
 
         if ([string]::IsNullOrWhiteSpace($WslScriptPath) -or $WslScriptPath -like '*error*') {
-            [Console]::WriteLine("ERROR: Failed to convert Windows path to WSL path")
-            [Console]::WriteLine("Windows path: $PythonScript")
-            [Console]::WriteLine("wslpath output: $WslScriptPath")
-            [Console]::WriteLine("Please ensure WSL is properly configured")
+            [Console]::WriteLine("ERROR: Failed to convert path to WSL")
             exit 1
         }
 
         $WslScriptPath = $WslScriptPath.Trim()
-        [Console]::WriteLine("Windows path: $PythonScript")
-        [Console]::WriteLine("WSL path:     $WslScriptPath")
-        [Console]::WriteLine("")
-
-        # Read the Python script
-        [Console]::WriteLine("Reading Python script...")
         $PythonCode = Get-Content $PythonScript -Raw -Encoding UTF8
 
-        # Build sys.argv
+        # Build sys.argv (use WslArgs which always includes -y)
         $SysArgv = "['$WslScriptPath'"
-        foreach ($arg in $PythonArgs) {
+        foreach ($arg in $WslArgs) {
             $SysArgv += ", '$arg'"
         }
         $SysArgv += "]"
@@ -181,60 +147,16 @@ sys.argv = $SysArgv
 $PythonCode
 "@
 
-        [Console]::WriteLine("Running patcher in WSL...")
-        [Console]::WriteLine("")
-
-        # Run patcher - use wsl -- to cleanly separate command
+        # Run patcher
         $Wrapper | wsl -- python3 -u -
 
-        # Reset console mode after WSL (prevents corruption)
+        # Reset console
         [Console]::Out.Flush()
         [Console]::Error.Flush()
 
-        # Check exit code
         if ($LASTEXITCODE -ne 0) {
-            [Console]::WriteLine("")
-            [Console]::WriteLine("ERROR: WSL patching failed with exit code $LASTEXITCODE")
+            [Console]::WriteLine("ERROR: WSL failed (exit code $LASTEXITCODE)")
             exit $LASTEXITCODE
         }
-
-        [Console]::WriteLine("")
-        [Console]::WriteLine("[SUCCESS] WSL patching completed!")
-        [Console]::WriteLine("")
-    }
-} else {
-    [Console]::WriteLine("")
-    [Console]::WriteLine("Skipping WSL patching (--skipWsl specified)")
-    [Console]::WriteLine("")
-}
-
-# ============================================================================
-# FINAL SUMMARY
-# ============================================================================
-[Console]::WriteLine("")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("  FINAL SUMMARY")
-[Console]::WriteLine("============================================================")
-[Console]::WriteLine("")
-
-if (-not $undo) {
-    [Console]::WriteLine("IMPORTANT: RESTART Cursor/VSCode completely to apply changes!")
-    [Console]::WriteLine("")
-    [Console]::WriteLine("Log files:")
-    [Console]::WriteLine("  Windows: $env:TEMP\claude-code-yolo.log")
-    if (-not $skipWsl -and $WslAvailable) {
-        [Console]::WriteLine("  WSL:     /tmp/claude-code-yolo.log")
-    }
-    [Console]::WriteLine("")
-    [Console]::WriteLine("View Windows logs:")
-    [Console]::WriteLine("  Get-Content `"$env:TEMP\claude-code-yolo.log`" -Wait -Tail 20")
-    if (-not $skipWsl -and $WslAvailable) {
-        [Console]::WriteLine("")
-        [Console]::WriteLine("View WSL logs:")
-        [Console]::WriteLine("  wsl tail -f /tmp/claude-code-yolo.log")
     }
 }
-
-[Console]::WriteLine("")
-[Console]::WriteLine("Done!")
-[Console]::WriteLine("")

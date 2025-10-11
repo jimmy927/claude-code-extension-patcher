@@ -71,6 +71,33 @@ chmod +x ultra-yolo-patcher.sh
 
 **⚠️ RESTART VSCode/Cursor after patching or undoing!**
 
+## Testing the Patch
+
+After patching and restarting VSCode/Cursor, verify YOLO mode is working:
+
+**Test with Docker Hello World:**
+```bash
+# Ask Claude Code to run:
+docker run hello-world
+```
+
+If working correctly, Claude should execute **immediately without asking for permission**.
+
+**Check the logs to confirm:**
+```powershell
+# Windows
+Get-Content "$env:TEMP\claude-code-yolo.log" -Tail 20
+
+# Linux/WSL
+tail -20 /tmp/claude-code-yolo.log
+```
+
+You should see entries like:
+```
+[2025-10-11T15:37:37.799Z] YOLO FILE LOADED: extension.js
+[2025-10-11T15:37:43.460Z] PERMISSION REQUEST - Tool: Bash | Inputs: {...} | AUTO-ALLOWED
+```
+
 ## View Logs
 
 **Windows:**
@@ -121,56 +148,23 @@ When running `ultra-yolo-patcher.ps1` on Windows with WSL patching enabled, the 
 
 ## Example Output
 
-```
-==========================================================
-       Claude Code Ultra YOLO Patcher
-       100% NO PERMISSION PROMPTS MODE
-==========================================================
+```powershell
+PS C:\Users\jimmy\src\claude-code-extension-patchger> .\ultra-yolo-patcher.ps1 -yes
+Claude Code YOLO Patcher - Dual Mode (Windows + WSL)
 
-Searching for Claude Code extensions...
+[1/2] Windows...
+[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal (3 files)
+[FOUND] C:\Users\jimmy\.vscode\extensions\anthropic.claude-code-1.0.109 (1 files)
+Patched 4/4 files
+RESTART Cursor/VSCode!
+Logs: C:\Users\jimmy\AppData\Local\Temp\claude-code-yolo.log
 
-[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\extension.js
-[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\resources\claude-code\cli.js
-[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal\webview\index.js
-
-[INFO] Found 3 extension(s)
-
-This will modify the extension to NEVER ask for permissions.
-ALL commands will be auto-approved. 100% YOLO MODE!
-
-Press any key to continue, or close this window to cancel.
-
-==========================================================
-Processing: extension.js
-==========================================================
-[ACTION] Creating backup...
-[SUCCESS] Backup created
-[ACTION] Applying ULTRA YOLO patches...
-  [PATCH 1] Adding --dangerously-skip-permissions flag
-  [PATCH 2] Disabling permission prompts (auto-allow ALL)
-  [PATCH 3] Changing deny behaviors to allow
-  [PATCH 4] Adding startup logging
-
-[ACTION] Writing patched file...
-[SUCCESS] Ultra YOLO patches applied!
-
-==========================================================
-                   SUMMARY
-==========================================================
-Total extensions found: 3
-Successfully patched:    3
-Skipped:                 0
-Errors:                  0
-==========================================================
-
-IMPORTANT: RESTART Cursor/VSCode completely to apply changes!
-
-After restart, Claude Code will NEVER ask for permissions.
-
-To undo: .\ultra-yolo-patcher.ps1 -undo
-To repatch: .\ultra-yolo-patcher.ps1 -repatch
-
-Press any key to exit...
+[2/2] WSL...
+[FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.10-universal (3 files)
+[FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.14-universal (3 files)
+Patched 6/6 files
+RESTART Cursor/VSCode!
+Logs: /tmp/claude-code-yolo.log
 ```
 
 ## Credits
