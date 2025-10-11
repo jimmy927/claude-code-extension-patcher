@@ -1,13 +1,94 @@
-# Claude Code Ultra YOLO Patcher
-# 100% NO PERMISSION PROMPTS MODE - NEVER ASK FOR ANYTHING!
+<#
+.SYNOPSIS
+    Claude Code Ultra YOLO Patcher - Disables ALL permission prompts
 
+.DESCRIPTION
+    Patches Claude Code extension to NEVER ask for permissions.
+    Applies 4 patches to 3 files (extension.js, cli.js, webview/index.js):
+    1. CLI Flag: Adds --dangerously-skip-permissions
+    2. Permission Bypass: Auto-allows all permission requests
+    3. Deny→Allow: Changes behavior:"deny" to behavior:"allow"
+    4. Logging: Tracks all permissions to log file
+
+.PARAMETER Undo
+    Restore original files from .bak backups
+
+.PARAMETER Repatch
+    Undo then patch (useful after Claude Code updates)
+
+.PARAMETER Yes
+    Skip all confirmation prompts
+
+.PARAMETER SkipWsl
+    Skip WSL patching (Windows only mode)
+
+.PARAMETER Version
+    Show script version and exit
+
+.EXAMPLE
+    .\ultra-yolo-patcher.ps1
+    Apply patches with confirmation prompt
+
+.EXAMPLE
+    .\ultra-yolo-patcher.ps1 -Yes
+    Apply patches without any prompts
+
+.EXAMPLE
+    .\ultra-yolo-patcher.ps1 -Undo
+    Restore original files from backups
+
+.EXAMPLE
+    .\ultra-yolo-patcher.ps1 -Repatch
+    Undo and re-apply patches
+
+.NOTES
+    IMPORTANT: RESTART Cursor/VSCode completely after patching!
+    Backups are created with .bak extension
+    USE AT YOUR OWN RISK - bypasses ALL safety checks
+
+    Log file: $env:TEMP\claude-code-yolo.log
+    View logs: Get-Content $env:TEMP\claude-code-yolo.log -Wait -Tail 20
+#>
+
+[CmdletBinding(DefaultParameterSetName='Patch')]
 param(
-    [switch]$undo,
-    [switch]$repatch,
-    [switch]$yes
+    [Parameter(ParameterSetName='Undo')]
+    [switch]$Undo,
+
+    [Parameter(ParameterSetName='Repatch')]
+    [switch]$Repatch,
+
+    [Parameter()]
+    [switch]$Yes,
+
+    [Parameter()]
+    [switch]$SkipWsl,
+
+    [Parameter()]
+    [Alias('?')]
+    [switch]$Help,
+
+    [Parameter()]
+    [switch]$Version
 )
 
-$host.UI.RawUI.WindowTitle = "Claude Code Ultra YOLO Patcher"
+$host.UI.RawUI.WindowTitle = "Claude Code Ultra YOLO Patcher v1.3"
+$SCRIPT_VERSION = "1.3"
+
+# Handle -version flag
+if ($Version) {
+    Write-Host ""
+    Write-Host "Claude Code Ultra YOLO Patcher" -ForegroundColor Cyan
+    Write-Host "Version: $SCRIPT_VERSION" -ForegroundColor Green
+    Write-Host ""
+    exit 0
+}
+
+# Handle -help flag
+if ($Help) {
+    Get-Help $PSCommandPath -Detailed
+    exit 0
+}
 
 # Handle -repatch flag (undo + patch)
 if ($repatch) {
@@ -277,6 +358,72 @@ if (-not $undo -and $patchedCount -gt 0) {
 if (-not $undo) {
     Write-Host "To undo: .\ultra-yolo-patcher.ps1 -undo" -ForegroundColor Yellow
     Write-Host "To repatch: .\ultra-yolo-patcher.ps1 -repatch" -ForegroundColor Yellow
+}
+
+# WSL Detection and Patching
+if (-not $SkipWsl) {
+    Write-Host ""
+    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host "                 WSL PATCHING" -ForegroundColor White
+    Write-Host "==========================================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    # Get the bash script path
+    $bashScript = Join-Path $PSScriptRoot "ultra-yolo-patcher.sh"
+
+    if (Test-Path $bashScript) {
+        Write-Host "Checking for WSL..." -ForegroundColor Yellow
+
+        # Build WSL command based on mode
+        if ($undo) {
+            $wslArgs = "-undo -yes"
+        } else {
+            $wslArgs = "-yes"
+        }
+
+        # Try to run WSL - if it fails, WSL isn't installed
+        try {
+            Write-Host "[INFO] Running WSL patcher..." -ForegroundColor Cyan
+            Write-Host ""
+
+            # Run the script directly - wsl can access Windows paths via /mnt/
+            # Convert C:\path\to\file.sh -> /mnt/c/path/to/file.sh
+            $wslScriptPath = $bashScript -replace '\\', '/'
+            if ($wslScriptPath -match '^([A-Za-z]):(.*)') {
+                $drive = $matches[1].ToLower()
+                $path = $matches[2]
+                $wslScriptPath = "/mnt/$drive$path"
+            }
+
+            # Run bash with the script and args as separate parameters
+            if ($undo) {
+                wsl bash "$wslScriptPath" -undo -yes
+            } else {
+                wsl bash "$wslScriptPath" -yes
+            }
+
+            Write-Host ""
+            Write-Host "==========================================================" -ForegroundColor Cyan
+            Write-Host "                 WSL PATCHING COMPLETE" -ForegroundColor White
+            Write-Host "==========================================================" -ForegroundColor Cyan
+            Write-Host ""
+
+            if ($undo) {
+                Write-Host "[SUCCESS] WSL extensions restored!" -ForegroundColor Green
+            } else {
+                Write-Host "[SUCCESS] WSL extensions patched!" -ForegroundColor Green
+                Write-Host ""
+                Write-Host "WSL log file: /tmp/claude-code-yolo.log" -ForegroundColor Cyan
+                Write-Host "View WSL logs: wsl tail -f /tmp/claude-code-yolo.log" -ForegroundColor Yellow
+            }
+        } catch {
+            Write-Host "[INFO] WSL not available, skipping WSL patching" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "[SKIP] Bash patcher script not found, skipping WSL" -ForegroundColor Yellow
+    }
+
+    Write-Host ""
 }
 
 if (-not $yes) {
