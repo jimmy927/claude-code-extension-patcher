@@ -1,5 +1,3 @@
-# WORK IN PROGRESS !!!
-
 # Claude Code Ultra YOLO Patcher
 
 Disables ALL permission prompts in Claude Code for VSCode/Cursor.
