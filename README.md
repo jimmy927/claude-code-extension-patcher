@@ -103,6 +103,22 @@ With YOLO mode enabled, Claude can:
 
 **Only use if you fully trust Claude and understand the risks.**
 
+## Known Issues
+
+### PowerShell Prompt Corruption (WSL Patching)
+
+When running `ultra-yolo-patcher.ps1` on Windows with WSL patching enabled, the PowerShell prompt may appear corrupted after completion (cursor positioned incorrectly).
+
+**Symptoms:**
+- Prompt appears with extra spacing
+- Text appears offset to the right
+- Terminal still functions normally
+
+**Workarounds:**
+1. Close and reopen the PowerShell window
+
+**Root Cause:** WSL Python output leaves the cursor in an incorrect position when piped through PowerShell. Multiple fixes attempted (console flushing, carriage returns, terminal resets) but the underlying WSL/PowerShell interaction issue persists.
+
 ## Example Output
 
 ```
