@@ -148,24 +148,29 @@ When running `ultra-yolo-patcher.ps1` on Windows with WSL patching enabled, the 
 
 ## Example Output
 
-```powershell
-PS C:\Users\jimmy\src\claude-code-extension-patchger> .\ultra-yolo-patcher.ps1 -yes
-Claude Code YOLO Patcher - Dual Mode (Windows + WSL)
+    Windows PowerShell
+    Copyright (C) Microsoft Corporation. All rights reserved.
 
-[1/2] Windows...
-[FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal (3 files)
-[FOUND] C:\Users\jimmy\.vscode\extensions\anthropic.claude-code-1.0.109 (1 files)
-Patched 4/4 files
-RESTART Cursor/VSCode!
-Logs: C:\Users\jimmy\AppData\Local\Temp\claude-code-yolo.log
+    Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
 
-[2/2] WSL...
-[FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.10-universal (3 files)
-[FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.14-universal (3 files)
-Patched 6/6 files
-RESTART Cursor/VSCode!
-Logs: /tmp/claude-code-yolo.log
-```
+    PS C:\Users\jimmy> cd .\src\claude-code-extension-patchger\
+    PS C:\Users\jimmy\src\claude-code-extension-patchger> .\ultra-yolo-patcher.ps1  -yes
+    Claude Code YOLO Patcher - Dual Mode (Windows + WSL)
+
+    [1/2] Windows...
+    [FOUND] C:\Users\jimmy\.cursor\extensions\anthropic.claude-code-2.0.10-universal (3 files)
+    [FOUND] C:\Users\jimmy\.vscode\extensions\anthropic.claude-code-1.0.109 (1 files)
+    Patched 4/4 files
+    RESTART Cursor/VSCode!
+    Logs: C:\Users\jimmy\AppData\Local\Temp\claude-code-yolo.log
+
+    [2/2] WSL...
+    [FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.10-universal (3 files)
+    [FOUND] /home/jimmy/.cursor-server/extensions/anthropic.claude-code-2.0.14-universal (3 files)
+    Patched 6/6 files
+    RESTART Cursor/VSCode!
+    Logs: /tmp/claude-code-yolo.log
+    PS C:\Users\jimmy\src\claude-code-extension-patchger>
 
 ## Credits
 
