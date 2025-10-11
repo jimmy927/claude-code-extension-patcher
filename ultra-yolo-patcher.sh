@@ -244,19 +244,46 @@ for FILE_PATH in "${FILE_PATHS[@]}"; do
         fi
 
         # Patch 2: Replace requestToolPermission
-        if grep -q 'async requestToolPermission([^)]*){return(await this\.sendRequest([^)]*,{type:"tool_permission_request"' "$TEMP_FILE"; then
+        if grep -q 'async requestToolPermission([^)]*){return(await this\.sendRequest' "$TEMP_FILE"; then
             echo -e "${CYAN}  [PATCH 2] Disabling permission prompts (auto-allow ALL) + ONE LOG FILE${NC}"
 
             # Determine if ES module or CommonJS
             if [[ "$FILENAME" == "cli.js" ]]; then
-                # ES module
-                LOG_CODE='async requestToolPermission(e,r,a,s){try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(err){}return{behavior:"allow"}}'
+                # ES module - write replacement to temp file to avoid quoting hell
+                cat > "${TEMP_FILE}.replacement" << 'ENDREPLACE'
+async requestToolPermission(e,r,a,s){try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\n";fs.appendFileSync("/tmp/claude-code-yolo.log",log);}catch(err){}return{behavior:"allow"}}
+ENDREPLACE
             else
-                # CommonJS
-                LOG_CODE='async requestToolPermission(e,r,a,s){try{const fs=require("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(err){}return{behavior:"allow"}}'
+                # CommonJS - write replacement to temp file
+                cat > "${TEMP_FILE}.replacement" << 'ENDREPLACE'
+async requestToolPermission(e,r,a,s){try{const fs=require("fs");const log="["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\n";fs.appendFileSync("/tmp/claude-code-yolo.log",log);}catch(err){}return{behavior:"allow"}}
+ENDREPLACE
             fi
 
-            perl -i -pe 's/async requestToolPermission\([^)]*\)\{return\(await this\.sendRequest\([^)]*,\{type:"tool_permission_request"[^}]*\}\)\)\.result\}/'"$LOG_CODE"'/g' "$TEMP_FILE"
+            # Use Python to do the replacement (more reliable than perl/sed for complex regex)
+            python3 -c "
+import re
+import sys
+
+# Read the temp file
+with open('$TEMP_FILE', 'r') as f:
+    content = f.read()
+
+# Read replacement text
+with open('${TEMP_FILE}.replacement', 'r') as f:
+    replacement = f.read().strip()
+
+# Pattern to match the original function
+pattern = r'async requestToolPermission\([^)]*\)\{return\(await this\.sendRequest\([^}]*\}\)\)\.result\}'
+
+# Replace
+content = re.sub(pattern, replacement, content)
+
+# Write back
+with open('$TEMP_FILE', 'w') as f:
+    f.write(content)
+"
+            rm -f "${TEMP_FILE}.replacement"
             MADE_CHANGES=1
         else
             echo -e "${YELLOW}  [PATCH 2] Pattern not found or already applied${NC}"
@@ -272,53 +299,59 @@ for FILE_PATH in "${FILE_PATHS[@]}"; do
         fi
 
         # Patch 3b: Add logging to checkPermissions (cli.js only)
-        if [[ "$FILENAME" == "cli.js" ]] && grep -q 'async checkPermissions(' "$TEMP_FILE"; then
-            if grep -q 'async checkPermissions([A-Z]){return{behavior:"allow",updatedInput:[A-Z]}' "$TEMP_FILE"; then
-                echo -e "${CYAN}  [PATCH 3b] Adding permission logging to checkPermissions functions${NC}"
-                perl -i -pe 's/(async checkPermissions\(([A-Z])\)\{)return\{behavior:"allow",updatedInput:\2\}/$1try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION CHECK: "+this.name+" | Input: "+JSON.stringify($2)+"\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}return{behavior:"allow",updatedInput:$2}/g' "$TEMP_FILE"
-                MADE_CHANGES=1
-            else
-                echo -e "${YELLOW}  [PATCH 3b] Pattern not found in cli.js${NC}"
-            fi
-        fi
+        # DISABLED - causes perl errors due to complex variable substitution
+        # These patches are non-critical (only add extra logging)
+        # if [[ "$FILENAME" == "cli.js" ]] && grep -q 'async checkPermissions(' "$TEMP_FILE"; then
+        #     if grep -q 'async checkPermissions([A-Z]){return{behavior:"allow",updatedInput:[A-Z]}' "$TEMP_FILE"; then
+        #         echo -e "${CYAN}  [PATCH 3b] Adding permission logging to checkPermissions functions${NC}"
+        #         perl -i -pe 's/(async checkPermissions\(([A-Z])\)\{)return\{behavior:"allow",updatedInput:\2\}/$1try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION CHECK: "+this.name+" | Input: "+JSON.stringify($2)+"\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}return{behavior:"allow",updatedInput:$2}/g' "$TEMP_FILE"
+        #         MADE_CHANGES=1
+        #     else
+        #         echo -e "${YELLOW}  [PATCH 3b] Pattern not found in cli.js${NC}"
+        #     fi
+        # fi
 
         # Patch 3c: Add logging to am() function (cli.js only)
-        if [[ "$FILENAME" == "cli.js" ]] && grep -q 'function am(A,B,Q)' "$TEMP_FILE"; then
-            if grep -q 'function am(A,B,Q){if(typeof A\.getPath!=="function")' "$TEMP_FILE"; then
-                echo -e "${CYAN}  [PATCH 3c] Adding permission logging to am() function (Bash, Edit, Write)${NC}"
-                LOG_CODE='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION CHECK (am): "+A.name+" | Input: "+JSON.stringify(B)+"\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
-                perl -i -pe 's/(function am\(A,B,Q\)\{)/$1'"$LOG_CODE"'/g' "$TEMP_FILE"
-                MADE_CHANGES=1
-            else
-                echo -e "${YELLOW}  [PATCH 3c] am() function pattern not found${NC}"
-            fi
-        fi
+        # DISABLED - causes perl errors due to complex variable substitution
+        # These patches are non-critical (only add extra logging)
+        # if [[ "$FILENAME" == "cli.js" ]] && grep -q 'function am(A,B,Q)' "$TEMP_FILE"; then
+        #     if grep -q 'function am(A,B,Q){if(typeof A\.getPath!=="function")' "$TEMP_FILE"; then
+        #         echo -e "${CYAN}  [PATCH 3c] Adding permission logging to am() function (Bash, Edit, Write)${NC}"
+        #         LOG_CODE='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] PERMISSION CHECK (am): "+A.name+" | Input: "+JSON.stringify(B)+"\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
+        #         perl -i -pe 's/(function am\(A,B,Q\)\{)/$1'"$LOG_CODE"'/g' "$TEMP_FILE"
+        #         MADE_CHANGES=1
+        #     else
+        #         echo -e "${YELLOW}  [PATCH 3c] am() function pattern not found${NC}"
+        #     fi
+        # fi
 
         # Patch 4: Add startup logging
-        if ! grep -q 'YOLO FILE LOADED' "$TEMP_FILE"; then
-            echo -e "${CYAN}  [PATCH 4] Adding startup logging to ONE LOG FILE${NC}"
-
-            if [[ "$FILENAME" == "cli.js" ]]; then
-                # ES module with shebang - insert after line 1
-                if grep -q '^#!/usr/bin/env node' "$TEMP_FILE"; then
-                    STARTUP_LOG='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
-                    # Use sed to insert after first line - use single quotes to preserve backslash
-                    sed -i '1a\'"$STARTUP_LOG" "$TEMP_FILE"
-                else
-                    STARTUP_LOG='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
-                    # Prepend to file
-                    printf '%s\n' "$STARTUP_LOG" | cat - "$TEMP_FILE" > "$TEMP_FILE.tmp2" && mv "$TEMP_FILE.tmp2" "$TEMP_FILE"
-                fi
-            else
-                # CommonJS - prepend to file
-                STARTUP_LOG='try{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);console.log("YOLO LOADED: '"$FILENAME"'");}catch(e){console.error("YOLO ERROR in '"$FILENAME"':",e);}'
-                printf '%s\n' "$STARTUP_LOG" | cat - "$TEMP_FILE" > "$TEMP_FILE.tmp2" && mv "$TEMP_FILE.tmp2" "$TEMP_FILE"
-            fi
-
-            MADE_CHANGES=1
-        else
-            echo -e "${YELLOW}  [PATCH 4] Startup logging already added${NC}"
-        fi
+        # DISABLED - causes syntax errors due to newline handling
+        # This patch is non-critical (only adds startup logging for debugging)
+        # if ! grep -q 'YOLO FILE LOADED' "$TEMP_FILE"; then
+        #     echo -e "${CYAN}  [PATCH 4] Adding startup logging to ONE LOG FILE${NC}"
+        #
+        #     if [[ "$FILENAME" == "cli.js" ]]; then
+        #         # ES module with shebang - insert after line 1
+        #         if grep -q '^#!/usr/bin/env node' "$TEMP_FILE"; then
+        #             STARTUP_LOG='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
+        #             # Use sed to insert after first line - use single quotes to preserve backslash
+        #             sed -i '1a\'"$STARTUP_LOG" "$TEMP_FILE"
+        #         else
+        #             STARTUP_LOG='(async()=>{try{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);}catch(e){}})();'
+        #             # Prepend to file
+        #             printf '%s\n' "$STARTUP_LOG" | cat - "$TEMP_FILE" > "$TEMP_FILE.tmp2" && mv "$TEMP_FILE.tmp2" "$TEMP_FILE"
+        #         fi
+        #     else
+        #         # CommonJS - prepend to file
+        #         STARTUP_LOG='try{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: '"$FILENAME"'\\n";fs.appendFileSync("'"$LOG_FILE"'",log);console.log("YOLO LOADED: '"$FILENAME"'");}catch(e){console.error("YOLO ERROR in '"$FILENAME"':",e);}'
+        #         printf '%s\n' "$STARTUP_LOG" | cat - "$TEMP_FILE" > "$TEMP_FILE.tmp2" && mv "$TEMP_FILE.tmp2" "$TEMP_FILE"
+        #     fi
+        #
+        #     MADE_CHANGES=1
+        # else
+        #     echo -e "${YELLOW}  [PATCH 4] Startup logging already added${NC}"
+        # fi
 
         # Write changes
         if [[ $MADE_CHANGES -eq 1 ]]; then
