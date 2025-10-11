@@ -206,22 +206,26 @@ log.close()
         # Run patcher - output goes to file (silent mode)
         $null = $Wrapper | wsl python3 -u -
 
-        # Read and display output from Windows
-        if (Test-Path $WinLogFile) {
-            Get-Content $WinLogFile
-            [Console]::WriteLine("")
-            Remove-Item $WinLogFile
-        }
-
+        # Check if it worked by looking at exit code
         if ($LASTEXITCODE -ne 0) {
+            [Console]::WriteLine("WARNING: WSL patching may have failed (exit code: $LASTEXITCODE)")
             [Console]::WriteLine("")
-            [Console]::WriteLine("WARNING: WSL patching failed with exit code $LASTEXITCODE")
-            [Console]::WriteLine("Windows installation was patched successfully.")
-            [Console]::WriteLine("")
+            # Show log on error
+            if (Test-Path $WinLogFile) {
+                [Console]::WriteLine("WSL Patcher Log:")
+                [Console]::WriteLine("=" * 60)
+                Get-Content $WinLogFile
+                [Console]::WriteLine("=" * 60)
+                [Console]::WriteLine("")
+                Remove-Item $WinLogFile
+            }
         } else {
-            [Console]::WriteLine("")
             [Console]::WriteLine("[SUCCESS] WSL patching completed!")
             [Console]::WriteLine("")
+            # Clean up log silently
+            if (Test-Path $WinLogFile) {
+                Remove-Item $WinLogFile
+            }
         }
     }
 } else {
