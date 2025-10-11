@@ -145,8 +145,7 @@ if (-not $skipWsl) {
         [Console]::WriteLine("WSL detected - running patcher in WSL...")
         [Console]::WriteLine("")
 
-        # Convert Windows path to WSL path using wslpath (the proper Windows tool)
-        # Need to escape the path for WSL shell
+        # Convert Windows path to WSL path for sys.argv[0]
         $EscapedPath = $PythonScript -replace '\\', '\\'
         $WslScriptPath = (wsl wslpath -u `"$EscapedPath`" 2>&1 | Select-Object -First 1)
 
@@ -163,16 +162,31 @@ if (-not $skipWsl) {
         [Console]::WriteLine("WSL path:     $WslScriptPath")
         [Console]::WriteLine("")
 
-        # Run Python patcher in WSL
-        # Use python3 -u for unbuffered output
-        if ($ArgString) {
-            wsl bash -c "python3 -u '$WslScriptPath' $ArgString"
-        } else {
-            wsl bash -c "python3 -u '$WslScriptPath'"
-        }
+        # WORKAROUND: Running Python .py files from WSL corrupts PowerShell terminal
+        # SOLUTION: Pipe Python code via stdin to python3 (avoids file execution)
+        [Console]::WriteLine("Reading Python script...")
+        $PythonCode = Get-Content $PythonScript -Raw -Encoding UTF8
 
-        # Reset console after WSL (WSL messes up console state)
-        [Console]::Out.Flush()
+        # Build sys.argv
+        $SysArgv = "['$WslScriptPath'"
+        foreach ($arg in $PythonArgs) {
+            $SysArgv += ", '$arg'"
+        }
+        $SysArgv += "]"
+
+        # Create wrapper that sets sys.argv before executing script
+        $Wrapper = @"
+import sys
+sys.argv = $SysArgv
+# Execute the actual script below:
+$PythonCode
+"@
+
+        [Console]::WriteLine("Running patcher in WSL (stdin mode to prevent terminal corruption)...")
+        [Console]::WriteLine("")
+
+        # Pipe to WSL python3 stdin - prevents terminal corruption!
+        $Wrapper | wsl python3 -u -
 
         if ($LASTEXITCODE -ne 0) {
             [Console]::WriteLine("")
