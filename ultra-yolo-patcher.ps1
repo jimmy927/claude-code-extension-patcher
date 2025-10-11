@@ -162,19 +162,9 @@ if (-not $skipWsl) {
         [Console]::WriteLine("WSL path:     $WslScriptPath")
         [Console]::WriteLine("")
 
-        # WORKAROUND: Running Python via WSL corrupts PowerShell terminal
-        # SOLUTION: Redirect Python output to file, read from Windows
+        # Read the Python script
         [Console]::WriteLine("Reading Python script...")
         $PythonCode = Get-Content $PythonScript -Raw -Encoding UTF8
-
-        # Use Windows temp file for output
-        $WinLogFile = Join-Path $env:TEMP "claude-patcher-wsl-output.log"
-        $EscapedLogPath = $WinLogFile -replace '\\', '\\'
-        $WslLogFile = (wsl wslpath -u `"$EscapedLogPath`" 2>&1 | Select-Object -First 1)
-        if ($WslLogFile) { $WslLogFile = $WslLogFile.Trim() }
-
-        # Remove old log
-        if (Test-Path $WinLogFile) { Remove-Item $WinLogFile }
 
         # Build sys.argv
         $SysArgv = "['$WslScriptPath'"
@@ -183,50 +173,34 @@ if (-not $skipWsl) {
         }
         $SysArgv += "]"
 
-        # Wrapper redirects all output to log file
+        # Create clean wrapper with sys.argv
         $Wrapper = @"
 import sys
 sys.argv = $SysArgv
-
-# Redirect stdout/stderr to log file
-log = open('$WslLogFile', 'w', encoding='utf-8')
-sys.stdout = log
-sys.stderr = log
-
-# Execute the actual script
+# Execute script:
 $PythonCode
-
-# Close log
-log.close()
 "@
 
-        [Console]::WriteLine("Running patcher in WSL (output to temp file)...")
+        [Console]::WriteLine("Running patcher in WSL...")
         [Console]::WriteLine("")
 
-        # Run patcher - output goes to file (silent mode)
-        $null = $Wrapper | wsl python3 -u -
+        # Run patcher - use wsl -- to cleanly separate command
+        $Wrapper | wsl -- python3 -u -
 
-        # Check if it worked by looking at exit code
+        # Reset console mode after WSL (prevents corruption)
+        [Console]::Out.Flush()
+        [Console]::Error.Flush()
+
+        # Check exit code
         if ($LASTEXITCODE -ne 0) {
-            [Console]::WriteLine("WARNING: WSL patching may have failed (exit code: $LASTEXITCODE)")
             [Console]::WriteLine("")
-            # Show log on error
-            if (Test-Path $WinLogFile) {
-                [Console]::WriteLine("WSL Patcher Log:")
-                [Console]::WriteLine("=" * 60)
-                Get-Content $WinLogFile
-                [Console]::WriteLine("=" * 60)
-                [Console]::WriteLine("")
-                Remove-Item $WinLogFile
-            }
-        } else {
-            [Console]::WriteLine("[SUCCESS] WSL patching completed!")
-            [Console]::WriteLine("")
-            # Clean up log silently
-            if (Test-Path $WinLogFile) {
-                Remove-Item $WinLogFile
-            }
+            [Console]::WriteLine("ERROR: WSL patching failed with exit code $LASTEXITCODE")
+            exit $LASTEXITCODE
         }
+
+        [Console]::WriteLine("")
+        [Console]::WriteLine("[SUCCESS] WSL patching completed!")
+        [Console]::WriteLine("")
     }
 } else {
     [Console]::WriteLine("")
