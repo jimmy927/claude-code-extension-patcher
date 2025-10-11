@@ -19,50 +19,48 @@ Patches 3 files (`extension.js`, `cli.js`, `webview/index.js`) with 4 modificati
 
 **Python 3.6+** (included with most systems)
 - Windows: Python usually installed, or download from python.org
-- Linux/WSL: `python3` pre-installed
+- Linux/macOS/WSL: `python3` pre-installed
 
-## 🚀 Quick Start (RECOMMENDED)
+> **⚠️ Testing Status:** This tool has **ONLY** been tested on **Windows with Cursor**. It should work with VSCode and on macOS/Linux, but this is untested. Use on other platforms at your own risk. **PRs welcome** to improve cross-platform support!
 
-### ✨ Pure Python Version - ONE SCRIPT for Windows & WSL!
+## 🚀 Quick Start
 
-```bash
-# Windows (from PowerShell or Git Bash)
-python ultra-yolo-patcher.py -y
+### Windows (RECOMMENDED: PowerShell Wrapper)
 
-# WSL (from Windows)
-wsl python3 /mnt/c/path/to/ultra-yolo-patcher.py -y
+**Use the PowerShell wrapper to patch both Windows AND WSL automatically:**
 
-# Or from within WSL
-python3 ultra-yolo-patcher.py -y
+```powershell
+.\ultra-yolo-patcher.ps1 -yes      # Patch Windows + WSL (skip confirmations)
+.\ultra-yolo-patcher.ps1 -undo -yes    # Restore originals
+.\ultra-yolo-patcher.ps1 -repatch -yes # Undo + patch (after updates)
+.\ultra-yolo-patcher.ps1 -skipWsl  # Patch Windows only
 ```
 
-**Commands:**
-- `python ultra-yolo-patcher.py -y` - Apply patches (no prompts)
-- `python ultra-yolo-patcher.py --undo -y` - Restore original files
-- `python ultra-yolo-patcher.py --repatch -y` - Undo + patch (after updates)
-- `python ultra-yolo-patcher.py` - Apply patches (with confirmation)
+The PowerShell wrapper is tested on Windows with Cursor and handles both native Windows and WSL installations automatically.
 
-### 📋 Alternative: PowerShell/Bash Scripts (Legacy)
+### Linux / macOS / WSL (Python Script)
+
+**Run the Python script directly (UNTESTED):**
+
+```bash
+python3 ultra-yolo-patcher.py -y       # Apply patches (no prompts)
+python3 ultra-yolo-patcher.py --undo -y    # Restore original files
+python3 ultra-yolo-patcher.py --repatch -y # Undo + patch (after updates)
+```
+
+> **Note:** Not tested on macOS/Linux. Should work in theory, but backup your files first! **PRs welcome** for testing/fixes on other platforms.
+
+### 📋 Windows Alternative: Direct Python
 
 <details>
-<summary>Click to expand PowerShell/Bash instructions</summary>
+<summary>Click to expand alternative Windows method</summary>
 
-#### Windows (PowerShell)
-```powershell
-.\ultra-yolo-patcher.ps1           # Apply patches (Windows + WSL if detected)
-.\ultra-yolo-patcher.ps1 -undo     # Restore original (Windows + WSL)
-.\ultra-yolo-patcher.ps1 -repatch  # Undo + patch (Windows + WSL)
-.\ultra-yolo-patcher.ps1 -yes      # Skip confirmations
-.\ultra-yolo-patcher.ps1 -skipWsl  # Skip WSL patching (Windows only)
-```
-
-#### Linux/WSL (Bash)
+#### Windows Direct Python (without PowerShell wrapper)
 ```bash
-chmod +x ultra-yolo-patcher.sh
-./ultra-yolo-patcher.sh           # Apply patches
-./ultra-yolo-patcher.sh -undo     # Restore original
-./ultra-yolo-patcher.sh -repatch  # Undo + patch
-./ultra-yolo-patcher.sh -yes      # Skip confirmations
+# Run Python script directly
+python ultra-yolo-patcher.py -y
+python ultra-yolo-patcher.py --undo -y
+python ultra-yolo-patcher.py --repatch -y
 ```
 
 </details>
@@ -74,10 +72,8 @@ chmod +x ultra-yolo-patcher.sh
 After patching and restarting VSCode/Cursor, verify YOLO mode is working:
 
 **Test with Docker Hello World:**
-```bash
-# Ask Claude Code to run:
-docker run hello-world
-```
+
+Ask Claude Code: `"run docker hello world for me and tell me if it worked"`
 
 If working correctly, Claude should execute **immediately without asking for permission**.
 
