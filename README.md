@@ -1,5 +1,3 @@
-# WORK IN PROGRESS !!!
-
 # Claude Code Ultra YOLO Patcher
 
 Disables ALL permission prompts in Claude Code for VSCode/Cursor.
@@ -13,18 +11,43 @@ Disables ALL permission prompts in Claude Code for VSCode/Cursor.
 Patches 3 files (`extension.js`, `cli.js`, `webview/index.js`) with 4 modifications:
 
 1. **CLI Flag**: Adds `--dangerously-skip-permissions`
-2. **Permission Bypass**: Auto-allows all permission requests
+2. **Permission Bypass**: Auto-allows all permission requests + logging
 3. **Deny→Allow**: Changes `behavior:"deny"` to `behavior:"allow"`
-4. **Logging**: Tracks all permissions to `%TEMP%\claude-code-yolo.log` (Windows) or `/tmp/claude-code-yolo.log` (Linux)
+4. **Startup Logging**: Tracks when files are loaded
 
 ## Requirements
 
-**Windows:** PowerShell + Claude Code extension
-**Linux/WSL:** Bash + `perl` + Claude Code extension
+**Python 3.6+** (included with most systems)
+- Windows: Python usually installed, or download from python.org
+- Linux/WSL: `python3` pre-installed
 
-## Usage
+## 🚀 Quick Start (RECOMMENDED)
 
-### Windows (with automatic WSL detection!)
+### ✨ Pure Python Version - ONE SCRIPT for Windows & WSL!
+
+```bash
+# Windows (from PowerShell or Git Bash)
+python ultra-yolo-patcher.py -y
+
+# WSL (from Windows)
+wsl python3 /mnt/c/path/to/ultra-yolo-patcher.py -y
+
+# Or from within WSL
+python3 ultra-yolo-patcher.py -y
+```
+
+**Commands:**
+- `python ultra-yolo-patcher.py -y` - Apply patches (no prompts)
+- `python ultra-yolo-patcher.py --undo -y` - Restore original files
+- `python ultra-yolo-patcher.py --repatch -y` - Undo + patch (after updates)
+- `python ultra-yolo-patcher.py` - Apply patches (with confirmation)
+
+### 📋 Alternative: PowerShell/Bash Scripts (Legacy)
+
+<details>
+<summary>Click to expand PowerShell/Bash instructions</summary>
+
+#### Windows (PowerShell)
 ```powershell
 .\ultra-yolo-patcher.ps1           # Apply patches (Windows + WSL if detected)
 .\ultra-yolo-patcher.ps1 -undo     # Restore original (Windows + WSL)
@@ -33,9 +56,7 @@ Patches 3 files (`extension.js`, `cli.js`, `webview/index.js`) with 4 modificati
 .\ultra-yolo-patcher.ps1 -skipWsl  # Skip WSL patching (Windows only)
 ```
 
-**Note:** The PowerShell script automatically detects WSL and patches both Windows and WSL installations!
-
-### Linux/WSL
+#### Linux/WSL (Bash)
 ```bash
 chmod +x ultra-yolo-patcher.sh
 ./ultra-yolo-patcher.sh           # Apply patches
@@ -44,7 +65,9 @@ chmod +x ultra-yolo-patcher.sh
 ./ultra-yolo-patcher.sh -yes      # Skip confirmations
 ```
 
-**RESTART VSCode/Cursor after patching or undoing!**
+</details>
+
+**⚠️ RESTART VSCode/Cursor after patching or undoing!**
 
 ## View Logs
 
@@ -60,12 +83,14 @@ tail -f /tmp/claude-code-yolo.log
 
 ## Features
 
+- ✅ **Pure Python** - Single script for Windows & WSL (no shell quoting hell!)
 - ✅ Complete permission bypass
-- ✅ **Automatic WSL detection & patching** (PowerShell script patches both!)
+- ✅ Automatic file discovery (finds all Claude Code versions)
 - ✅ Automatic backups (`.bak` files)
-- ✅ Comprehensive logging
-- ✅ Cross-platform (Windows + Linux/WSL)
-- ✅ Reversible with `-undo`
+- ✅ Comprehensive logging (permission requests + file loads)
+- ✅ Cross-platform (Windows + Linux/WSL + Mac)
+- ✅ Fully reversible with `--undo`
+- ✅ OS-specific log paths (Windows: `%TEMP%`, WSL: `/tmp`)
 
 ## Security Warning
 
