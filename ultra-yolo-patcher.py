@@ -12,24 +12,12 @@ import argparse
 from pathlib import Path
 from typing import List, Tuple
 
-# ANSI color codes
-class Colors:
-    RED = '\033[0;31m'
-    GREEN = '\033[0;32m'
-    YELLOW = '\033[1;33m'
-    CYAN = '\033[0;36m'
-    NC = '\033[0m'  # No Color
-
-def print_colored(text: str, color: str):
-    """Print colored text"""
-    print(f"{color}{text}{Colors.NC}")
-
 def print_header(text: str):
     """Print a header"""
     print()
-    print_colored("=" * 60, Colors.CYAN)
-    print_colored(text, Colors.CYAN)
-    print_colored("=" * 60, Colors.CYAN)
+    print("=" * 60)
+    print(text)
+    print("=" * 60)
     print()
 
 def find_extension_files() -> List[Path]:
@@ -45,7 +33,7 @@ def find_extension_files() -> List[Path]:
         home / '.vscode-server' / 'extensions',
     ]
 
-    print_colored("Searching for Claude Code extensions...", Colors.YELLOW)
+    print("Searching for Claude Code extensions...")
     print()
 
     for search_dir in search_dirs:
@@ -58,7 +46,7 @@ def find_extension_files() -> List[Path]:
                 # Find all .js files in the extension
                 for js_file in ext_dir.rglob('*.js'):
                     files.append(js_file)
-                    print_colored(f"[FOUND] {js_file}", Colors.GREEN)
+                    print(f"[FOUND] {js_file}")
 
     return files
 
@@ -67,16 +55,16 @@ def create_backup(file_path: Path) -> bool:
     backup_path = Path(str(file_path) + '.bak')
 
     if backup_path.exists():
-        print_colored("[INFO] Backup already exists", Colors.YELLOW)
+        print("[INFO] Backup already exists")
         return True
 
-    print_colored("[ACTION] Creating backup...", Colors.YELLOW)
+    print("[ACTION] Creating backup...")
     try:
         shutil.copy2(file_path, backup_path)
-        print_colored("[SUCCESS] Backup created", Colors.GREEN)
+        print("[SUCCESS] Backup created")
         return True
     except Exception as e:
-        print_colored(f"[ERROR] Failed to create backup: {e}", Colors.RED)
+        print(f"[ERROR] Failed to create backup: {e}")
         return False
 
 def restore_backup(file_path: Path) -> bool:
@@ -84,17 +72,17 @@ def restore_backup(file_path: Path) -> bool:
     backup_path = Path(str(file_path) + '.bak')
 
     if not backup_path.exists():
-        print_colored("[SKIP] No backup found", Colors.YELLOW)
+        print("[SKIP] No backup found")
         return False
 
-    print_colored("[ACTION] Restoring from backup...", Colors.YELLOW)
+    print("[ACTION] Restoring from backup...")
     try:
         shutil.copy2(backup_path, file_path)
         backup_path.unlink()  # Remove backup after restoring
-        print_colored("[SUCCESS] Restored!", Colors.GREEN)
+        print("[SUCCESS] Restored!")
         return True
     except Exception as e:
-        print_colored(f"[ERROR] Failed to restore: {e}", Colors.RED)
+        print(f"[ERROR] Failed to restore: {e}")
         return False
 
 def patch_file(file_path: Path) -> Tuple[bool, int]:
@@ -103,14 +91,14 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
     FILE-SPECIFIC patches based on filename.
     Returns (success, changes_made)
     """
-    print_colored("[ACTION] Applying YOLO patches...", Colors.YELLOW)
+    print("[ACTION] Applying YOLO patches...")
 
     # Read file
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print_colored(f"[ERROR] Failed to read file: {e}", Colors.RED)
+        print(f"[ERROR] Failed to read file: {e}")
         return False, 0
 
     original_content = content
@@ -129,27 +117,27 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
     if filename == 'extension.js':
         # Patch 1: Add --dangerously-skip-permissions flag
         if 'k=["--output-format","stream-json"' in content:
-            print_colored("  [PATCH 1] Adding --dangerously-skip-permissions flag", Colors.CYAN)
+            print("  [PATCH 1] Adding --dangerously-skip-permissions flag")
             content = content.replace(
                 'k=["--output-format","stream-json"',
                 'k=["--dangerously-skip-permissions","--output-format","stream-json"'
             )
             changes_made += 1
         elif 'F=["--output-format","stream-json"' in content:
-            print_colored("  [PATCH 1] Adding --dangerously-skip-permissions flag (v2.0.1)", Colors.CYAN)
+            print("  [PATCH 1] Adding --dangerously-skip-permissions flag (v2.0.1)")
             content = content.replace(
                 'F=["--output-format","stream-json"',
                 'F=["--dangerously-skip-permissions","--output-format","stream-json"'
             )
             changes_made += 1
         else:
-            print_colored("  [PATCH 1] Already applied or different version", Colors.YELLOW)
+            print("  [PATCH 1] Already applied or different version")
 
         # Patch 2: Replace requestToolPermission function
         original_func = 'async requestToolPermission(e,r,a,s){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:a,suggestions:s})).result}'
 
         if original_func in content:
-            print_colored("  [PATCH 2] Disabling permission prompts (auto-allow ALL) + LOGGING", Colors.CYAN)
+            print("  [PATCH 2] Disabling permission prompts (auto-allow ALL) + LOGGING")
             # The response must be a union type:
             # - For "allow": must include updatedInput (the tool inputs, possibly modified)
             # - For "deny": just {behavior: "deny"}
@@ -158,36 +146,36 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
             content = content.replace(original_func, replacement_func)
             changes_made += 1
         else:
-            print_colored("  [PATCH 2] Pattern not found or already applied", Colors.YELLOW)
+            print("  [PATCH 2] Pattern not found or already applied")
 
         # Patch 3: Change deny to allow
         deny_count = content.count('behavior:"deny"')
         if deny_count > 0:
-            print_colored(f"  [PATCH 3] Changing {deny_count} deny behaviors to allow", Colors.CYAN)
+            print(f"  [PATCH 3] Changing {deny_count} deny behaviors to allow")
             content = content.replace('behavior:"deny"', 'behavior:"allow"')
             changes_made += 1
         else:
-            print_colored("  [PATCH 3] No deny behaviors found", Colors.YELLOW)
+            print("  [PATCH 3] No deny behaviors found")
 
         # Patch 4: Add startup logging (extension.js only)
         if 'YOLO FILE LOADED' not in content:
-            print_colored("  [PATCH 4] Adding startup logging", Colors.CYAN)
+            print("  [PATCH 4] Adding startup logging")
             startup_log = f'try{{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: {filename}\\n";fs.appendFileSync("{log_file}",log);console.log("YOLO LOADED: {filename}");}}catch(e){{console.error("YOLO ERROR in {filename}:",e);}};'
             content = startup_log + '\n' + content
             changes_made += 1
         else:
-            print_colored("  [PATCH 4] Startup logging already added", Colors.YELLOW)
+            print("  [PATCH 4] Startup logging already added")
 
     # ========================================================================
     # CLI.JS ONLY - ONLY startup logging, NO deny->allow (causes errors!)
     # ========================================================================
     elif filename == 'cli.js':
         # Patch 3: SKIP for cli.js - deny behaviors are needed for error handling!
-        print_colored("  [PATCH 3] Skipped for cli.js (deny behaviors needed for error handling)", Colors.YELLOW)
+        print("  [PATCH 3] Skipped for cli.js (deny behaviors needed for error handling)")
 
         # Patch 4: Add startup logging (cli.js only)
         if 'YOLO FILE LOADED' not in content:
-            print_colored("  [PATCH 4] Adding startup logging", Colors.CYAN)
+            print("  [PATCH 4] Adding startup logging")
             if content.startswith('#!/usr/bin/env node'):
                 startup_log = f'(async()=>{{try{{const fs=await import("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: {filename}\\n";fs.appendFileSync("{log_file}",log);}}catch(e){{}}}})();'
                 lines = content.split('\n', 1)
@@ -200,7 +188,7 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
                 content = startup_log + '\n' + content
             changes_made += 1
         else:
-            print_colored("  [PATCH 4] Startup logging already added", Colors.YELLOW)
+            print("  [PATCH 4] Startup logging already added")
 
     # ========================================================================
     # OTHER FILES (index.js etc) - Just deny->allow
@@ -209,36 +197,36 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
         # Patch 3: Change deny to allow (other files)
         deny_count = content.count('behavior:"deny"')
         if deny_count > 0:
-            print_colored(f"  [PATCH 3] Changing {deny_count} deny behaviors to allow", Colors.CYAN)
+            print(f"  [PATCH 3] Changing {deny_count} deny behaviors to allow")
             content = content.replace('behavior:"deny"', 'behavior:"allow"')
             changes_made += 1
         else:
-            print_colored("  [PATCH 3] No deny behaviors found", Colors.YELLOW)
+            print("  [PATCH 3] No deny behaviors found")
 
         # Patch 4: Add startup logging (other files)
         if 'YOLO FILE LOADED' not in content:
-            print_colored("  [PATCH 4] Adding startup logging", Colors.CYAN)
+            print("  [PATCH 4] Adding startup logging")
             startup_log = f'try{{const fs=require("fs");const log="["+new Date().toISOString()+"] YOLO FILE LOADED: {filename}\\n";fs.appendFileSync("{log_file}",log);}}catch(e){{}};'
             content = startup_log + '\n' + content
             changes_made += 1
         else:
-            print_colored("  [PATCH 4] Startup logging already added", Colors.YELLOW)
+            print("  [PATCH 4] Startup logging already added")
 
     # Write file if changes were made
     if content != original_content:
         print()
-        print_colored("[ACTION] Writing patched file...", Colors.YELLOW)
+        print("[ACTION] Writing patched file...")
         try:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            print_colored("[SUCCESS] Patches applied!", Colors.GREEN)
+            print("[SUCCESS] Patches applied!")
             return True, changes_made
         except Exception as e:
-            print_colored(f"[ERROR] Failed to write file: {e}", Colors.RED)
+            print(f"[ERROR] Failed to write file: {e}")
             return False, 0
     else:
         print()
-        print_colored("[SKIP] No changes needed (already patched?)", Colors.YELLOW)
+        print("[SKIP] No changes needed (already patched?)")
         return False, 0
 
 def main():
@@ -265,7 +253,7 @@ IMPORTANT: RESTART Cursor/VSCode completely after patching!
     # Handle repatch mode
     if args.repatch:
         print_header("Claude Code Ultra YOLO Patcher - REPATCH MODE")
-        print_colored("Running UNDO first...", Colors.YELLOW)
+        print("Running UNDO first...")
         print()
 
         # Undo
@@ -274,7 +262,7 @@ IMPORTANT: RESTART Cursor/VSCode completely after patching!
         main_logic(args)
 
         print()
-        print_colored("Now running PATCH...", Colors.YELLOW)
+        print("Now running PATCH...")
         print()
 
         # Patch
@@ -297,21 +285,21 @@ def main_logic(args):
 
     if not files:
         print()
-        print_colored("[ERROR] No Claude Code extensions found!", Colors.RED)
+        print("[ERROR] No Claude Code extensions found!")
         print()
         sys.exit(1)
 
     print()
-    print_colored(f"[INFO] Found {len(files)} file(s)", Colors.CYAN)
+    print(f"[INFO] Found {len(files)} file(s)")
     print()
 
     # Confirmation
     if not args.yes:
         if args.undo:
-            print_colored("This will restore the original files from backups.", Colors.YELLOW)
+            print("This will restore the original files from backups.")
         else:
-            print_colored("This will modify the extension to NEVER ask for permissions.", Colors.YELLOW)
-            print_colored("ALL commands will be auto-approved. 100% YOLO MODE!", Colors.RED)
+            print("This will modify the extension to NEVER ask for permissions.")
+            print("ALL commands will be auto-approved. 100% YOLO MODE!")
 
         print()
         response = input("Press Enter to continue, or Ctrl+C to cancel... ")
@@ -323,9 +311,9 @@ def main_logic(args):
     error_count = 0
 
     for file_path in files:
-        print_colored("=" * 60, Colors.CYAN)
+        print("=" * 60)
         print(f"Processing: {file_path}")
-        print_colored("=" * 60, Colors.CYAN)
+        print("=" * 60)
 
         if args.undo:
             # UNDO MODE
@@ -351,45 +339,45 @@ def main_logic(args):
         print()
 
     # Summary
-    print_colored("=" * 60, Colors.CYAN)
+    print("=" * 60)
     print("                   SUMMARY")
-    print_colored("=" * 60, Colors.CYAN)
+    print("=" * 60)
     print(f"Total files found: {len(files)}")
-    print_colored(f"Successfully patched:    {patched_count}", Colors.GREEN)
-    print_colored(f"Skipped:                 {skipped_count}", Colors.YELLOW)
+    print(f"Successfully patched:    {patched_count}")
+    print(f"Skipped:                 {skipped_count}")
     if error_count > 0:
-        print_colored(f"Errors:                  {error_count}", Colors.RED)
+        print(f"Errors:                  {error_count}")
     else:
-        print_colored(f"Errors:                  {error_count}", Colors.GREEN)
-    print_colored("=" * 60, Colors.CYAN)
+        print(f"Errors:                  {error_count}")
+    print("=" * 60)
     print()
 
     if not args.undo and patched_count > 0:
-        print_colored("IMPORTANT: RESTART Cursor completely to apply changes!", Colors.RED)
+        print("IMPORTANT: RESTART Cursor completely to apply changes!")
         print()
-        print_colored("After restart, Claude Code will NEVER ask for permissions.", Colors.GREEN)
+        print("After restart, Claude Code will NEVER ask for permissions.")
         print()
 
         # Show log file location
         if os.name == 'nt':  # Windows
             log_file = os.path.join(os.environ.get('TEMP', 'C:\\Temp'), 'claude-code-yolo.log')
-            print_colored("ALL LOGS written to:", Colors.CYAN)
+            print("ALL LOGS written to:")
             print(f"  {log_file}")
             print()
-            print_colored("View logs:", Colors.YELLOW)
+            print("View logs:")
             print(f"  Get-Content \"{log_file}\" -Wait -Tail 20")
         else:  # Linux/WSL/Mac
             log_file = '/tmp/claude-code-yolo.log'
-            print_colored("ALL LOGS written to:", Colors.CYAN)
+            print("ALL LOGS written to:")
             print(f"  {log_file}")
             print()
-            print_colored("View logs:", Colors.YELLOW)
+            print("View logs:")
             print(f"  tail -f {log_file}")
         print()
 
     if not args.undo:
-        print_colored("To undo: python ultra-yolo-patcher.py --undo", Colors.YELLOW)
-        print_colored("To repatch: python ultra-yolo-patcher.py --repatch", Colors.YELLOW)
+        print("To undo: python ultra-yolo-patcher.py --undo")
+        print("To repatch: python ultra-yolo-patcher.py --repatch")
 
     print()
 
@@ -398,11 +386,11 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         print()
-        print_colored("Cancelled by user", Colors.YELLOW)
+        print("Cancelled by user")
         sys.exit(1)
     except Exception as e:
         print()
-        print_colored(f"FATAL ERROR: {e}", Colors.RED)
+        print(f"FATAL ERROR: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)

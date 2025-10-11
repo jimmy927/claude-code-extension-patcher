@@ -19,26 +19,27 @@
     Skip WSL patching (Windows only)
 
 .EXAMPLE
-    .\ultra-yolo-patcher-dual.ps1
+    .\ultra-yolo-patcher.ps1
     Apply patches to both Windows and WSL with confirmation
 
 .EXAMPLE
-    .\ultra-yolo-patcher-dual.ps1 -yes
+    .\ultra-yolo-patcher.ps1 -yes
     Apply patches without prompts
 
 .EXAMPLE
-    .\ultra-yolo-patcher-dual.ps1 -undo -yes
+    .\ultra-yolo-patcher.ps1 -undo -yes
     Restore original files on both Windows and WSL
 
 .EXAMPLE
-    .\ultra-yolo-patcher-dual.ps1 -repatch -yes
+    .\ultra-yolo-patcher.ps1 -repatch -yes
     Undo + patch on both Windows and WSL
 
 .EXAMPLE
-    .\ultra-yolo-patcher-dual.ps1 -skipWsl
+    .\ultra-yolo-patcher.ps1 -skipWsl
     Apply patches only to Windows (skip WSL)
 #>
 
+[CmdletBinding()]
 param(
     [switch]$undo,
     [switch]$repatch,
@@ -54,8 +55,8 @@ $PythonScript = Join-Path $ScriptDir "ultra-yolo-patcher.py"
 
 # Check if Python script exists
 if (-not (Test-Path $PythonScript)) {
-    Write-Host "ERROR: ultra-yolo-patcher.py not found!" -ForegroundColor Red
-    Write-Host "Expected location: $PythonScript" -ForegroundColor Red
+    [Console]::WriteLine("ERROR: ultra-yolo-patcher.py not found!")
+    [Console]::WriteLine("Expected location: $PythonScript")
     exit 1
 }
 
@@ -67,21 +68,21 @@ if ($yes) { $PythonArgs += "-y" }
 
 $ArgString = $PythonArgs -join " "
 
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  Claude Code Ultra YOLO Patcher - DUAL MODE" -ForegroundColor Cyan
-Write-Host "  Windows + WSL Python Patcher" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host ""
+[Console]::WriteLine("")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("  Claude Code Ultra YOLO Patcher - DUAL MODE")
+[Console]::WriteLine("  Windows + WSL Python Patcher")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("")
 
 # ============================================================================
 # WINDOWS PATCHING
 # ============================================================================
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  [1/2] PATCHING WINDOWS INSTALLATION" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host ""
+[Console]::WriteLine("")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("  [1/2] PATCHING WINDOWS INSTALLATION")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("")
 
 try {
     # Try python3 first, then python
@@ -91,30 +92,30 @@ try {
     }
 
     if (-not $PythonCmd) {
-        Write-Host "ERROR: Python not found in PATH!" -ForegroundColor Red
-        Write-Host "Please install Python 3.6+ from python.org" -ForegroundColor Yellow
+        [Console]::WriteLine("ERROR: Python not found in PATH!")
+        [Console]::WriteLine("Please install Python 3.6+ from python.org")
         exit 1
     }
 
-    Write-Host "Using Python: $($PythonCmd.Source)" -ForegroundColor Green
-    Write-Host ""
+    [Console]::WriteLine("Using Python: $($PythonCmd.Source)")
+    [Console]::WriteLine("")
 
     # Run Python patcher for Windows
     & $PythonCmd.Source $PythonScript @PythonArgs
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Host ""
-        Write-Host "ERROR: Windows patching failed with exit code $LASTEXITCODE" -ForegroundColor Red
+        [Console]::WriteLine("")
+        [Console]::WriteLine("ERROR: Windows patching failed with exit code $LASTEXITCODE")
         exit $LASTEXITCODE
     }
 
-    Write-Host ""
-    Write-Host "[SUCCESS] Windows patching completed!" -ForegroundColor Green
-    Write-Host ""
+    [Console]::WriteLine("")
+    [Console]::WriteLine("[SUCCESS] Windows patching completed!")
+    [Console]::WriteLine("")
 
 } catch {
-    Write-Host ""
-    Write-Host "ERROR: Windows patching failed: $_" -ForegroundColor Red
+    [Console]::WriteLine("")
+    [Console]::WriteLine("ERROR: Windows patching failed: $_")
     exit 1
 }
 
@@ -122,11 +123,11 @@ try {
 # WSL PATCHING
 # ============================================================================
 if (-not $skipWsl) {
-    Write-Host ""
-    Write-Host "============================================================" -ForegroundColor Cyan
-    Write-Host "  [2/2] PATCHING WSL INSTALLATION" -ForegroundColor Cyan
-    Write-Host "============================================================" -ForegroundColor Cyan
-    Write-Host ""
+    [Console]::WriteLine("")
+    [Console]::WriteLine("============================================================")
+    [Console]::WriteLine("  [2/2] PATCHING WSL INSTALLATION")
+    [Console]::WriteLine("============================================================")
+    [Console]::WriteLine("")
 
     # Check if WSL is available
     $WslAvailable = $false
@@ -138,11 +139,11 @@ if (-not $skipWsl) {
     }
 
     if (-not $WslAvailable) {
-        Write-Host "WSL not detected - skipping WSL patching" -ForegroundColor Yellow
-        Write-Host ""
+        [Console]::WriteLine("WSL not detected - skipping WSL patching")
+        [Console]::WriteLine("")
     } else {
-        Write-Host "WSL detected - running patcher in WSL..." -ForegroundColor Green
-        Write-Host ""
+        [Console]::WriteLine("WSL detected - running patcher in WSL...")
+        [Console]::WriteLine("")
 
         # Convert Windows path to WSL path using wslpath (the proper Windows tool)
         # Need to escape the path for WSL shell
@@ -150,69 +151,73 @@ if (-not $skipWsl) {
         $WslScriptPath = (wsl wslpath -u `"$EscapedPath`" 2>&1 | Select-Object -First 1)
 
         if ([string]::IsNullOrWhiteSpace($WslScriptPath) -or $WslScriptPath -like '*error*') {
-            Write-Host "ERROR: Failed to convert Windows path to WSL path" -ForegroundColor Red
-            Write-Host "Windows path: $PythonScript" -ForegroundColor Yellow
-            Write-Host "wslpath output: $WslScriptPath" -ForegroundColor Yellow
-            Write-Host "Please ensure WSL is properly configured" -ForegroundColor Yellow
+            [Console]::WriteLine("ERROR: Failed to convert Windows path to WSL path")
+            [Console]::WriteLine("Windows path: $PythonScript")
+            [Console]::WriteLine("wslpath output: $WslScriptPath")
+            [Console]::WriteLine("Please ensure WSL is properly configured")
             exit 1
         }
 
         $WslScriptPath = $WslScriptPath.Trim()
-        Write-Host "Windows path: $PythonScript" -ForegroundColor Gray
-        Write-Host "WSL path:     $WslScriptPath" -ForegroundColor Green
-        Write-Host ""
+        [Console]::WriteLine("Windows path: $PythonScript")
+        [Console]::WriteLine("WSL path:     $WslScriptPath")
+        [Console]::WriteLine("")
 
         # Run Python patcher in WSL
+        # Use python3 -u for unbuffered output
         if ($ArgString) {
-            wsl python3 "$WslScriptPath" $ArgString
+            wsl bash -c "python3 -u '$WslScriptPath' $ArgString"
         } else {
-            wsl python3 "$WslScriptPath"
+            wsl bash -c "python3 -u '$WslScriptPath'"
         }
 
+        # Reset console after WSL (WSL messes up console state)
+        [Console]::Out.Flush()
+
         if ($LASTEXITCODE -ne 0) {
-            Write-Host ""
-            Write-Host "WARNING: WSL patching failed with exit code $LASTEXITCODE" -ForegroundColor Yellow
-            Write-Host "Windows installation was patched successfully." -ForegroundColor Green
-            Write-Host ""
+            [Console]::WriteLine("")
+            [Console]::WriteLine("WARNING: WSL patching failed with exit code $LASTEXITCODE")
+            [Console]::WriteLine("Windows installation was patched successfully.")
+            [Console]::WriteLine("")
         } else {
-            Write-Host ""
-            Write-Host "[SUCCESS] WSL patching completed!" -ForegroundColor Green
-            Write-Host ""
+            [Console]::WriteLine("")
+            [Console]::WriteLine("[SUCCESS] WSL patching completed!")
+            [Console]::WriteLine("")
         }
     }
 } else {
-    Write-Host ""
-    Write-Host "Skipping WSL patching (--skipWsl specified)" -ForegroundColor Yellow
-    Write-Host ""
+    [Console]::WriteLine("")
+    [Console]::WriteLine("Skipping WSL patching (--skipWsl specified)")
+    [Console]::WriteLine("")
 }
 
 # ============================================================================
 # FINAL SUMMARY
 # ============================================================================
-Write-Host ""
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "  FINAL SUMMARY" -ForegroundColor Cyan
-Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host ""
+[Console]::WriteLine("")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("  FINAL SUMMARY")
+[Console]::WriteLine("============================================================")
+[Console]::WriteLine("")
 
 if (-not $undo) {
-    Write-Host "IMPORTANT: RESTART Cursor/VSCode completely to apply changes!" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Log files:" -ForegroundColor Cyan
-    Write-Host "  Windows: $env:TEMP\claude-code-yolo.log" -ForegroundColor White
+    [Console]::WriteLine("IMPORTANT: RESTART Cursor/VSCode completely to apply changes!")
+    [Console]::WriteLine("")
+    [Console]::WriteLine("Log files:")
+    [Console]::WriteLine("  Windows: $env:TEMP\claude-code-yolo.log")
     if (-not $skipWsl -and $WslAvailable) {
-        Write-Host "  WSL:     /tmp/claude-code-yolo.log" -ForegroundColor White
+        [Console]::WriteLine("  WSL:     /tmp/claude-code-yolo.log")
     }
-    Write-Host ""
-    Write-Host "View Windows logs:" -ForegroundColor Yellow
-    Write-Host "  Get-Content `"$env:TEMP\claude-code-yolo.log`" -Wait -Tail 20" -ForegroundColor White
+    [Console]::WriteLine("")
+    [Console]::WriteLine("View Windows logs:")
+    [Console]::WriteLine("  Get-Content `"$env:TEMP\claude-code-yolo.log`" -Wait -Tail 20")
     if (-not $skipWsl -and $WslAvailable) {
-        Write-Host ""
-        Write-Host "View WSL logs:" -ForegroundColor Yellow
-        Write-Host "  wsl tail -f /tmp/claude-code-yolo.log" -ForegroundColor White
+        [Console]::WriteLine("")
+        [Console]::WriteLine("View WSL logs:")
+        [Console]::WriteLine("  wsl tail -f /tmp/claude-code-yolo.log")
     }
 }
 
-Write-Host ""
-Write-Host "Done!" -ForegroundColor Green
-Write-Host ""
+[Console]::WriteLine("")
+[Console]::WriteLine("Done!")
+[Console]::WriteLine("")
