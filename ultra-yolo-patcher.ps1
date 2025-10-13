@@ -79,10 +79,33 @@ $ArgString = $PythonArgs -join " "
 [Console]::WriteLine("[1/2] Windows...")
 
 try {
-    # Try python3 first, then python
-    $PythonCmd = Get-Command python3 -ErrorAction SilentlyContinue
+    # Try python first (standard on Windows), then python3 (Linux/macOS)
+    $PythonCmd = $null
+
+    # Test python command
+    try {
+        $testPython = Get-Command python -ErrorAction Stop
+        $null = & $testPython.Source --version 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $PythonCmd = $testPython
+            [Console]::WriteLine("Using: python (version $(& $testPython.Source --version 2>&1))")
+        }
+    } catch {
+        # python not found or failed, continue
+    }
+
+    # If python failed, try python3
     if (-not $PythonCmd) {
-        $PythonCmd = Get-Command python -ErrorAction SilentlyContinue
+        try {
+            $testPython3 = Get-Command python3 -ErrorAction Stop
+            $null = & $testPython3.Source --version 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $PythonCmd = $testPython3
+                [Console]::WriteLine("Using: python3 (version $(& $testPython3.Source --version 2>&1))")
+            }
+        } catch {
+            # python3 not found or failed
+        }
     }
 
     if (-not $PythonCmd) {
