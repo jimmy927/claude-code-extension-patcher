@@ -2,7 +2,7 @@
 
 Disables ALL permission prompts in Claude Code for VSCode/Cursor.
 
-**Tested with Claude Code Extension versions:** 2.0.10, 2.0.14, 2.0.15, 2.0.19
+**Tested with Claude Code Extension versions:** 2.0.10, 2.0.14, 2.0.15, 2.0.19, 2.0.21
 
 ## ⚠️ DISCLAIMER
 
