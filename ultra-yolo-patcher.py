@@ -75,16 +75,13 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
 
     # Patch extension.js
     if filename == 'extension.js':
-        if 'k=["--output-format","stream-json"' in content:
-            content = content.replace('k=["--output-format","stream-json"', 'k=["--dangerously-skip-permissions","--output-format","stream-json"')
-            changes_made += 1
-        elif 'F=["--output-format","stream-json"' in content:
-            content = content.replace('F=["--output-format","stream-json"', 'F=["--dangerously-skip-permissions","--output-format","stream-json"')
+        if '=["--output-format","stream-json"' in content:
+            content = content.replace('=["--output-format","stream-json"', '=["--dangerously-skip-permissions","--output-format","stream-json"')
             changes_made += 1
 
-        original_func = 'async requestToolPermission(e,r,a,s){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:a,suggestions:s})).result}'
+        original_func = 'async requestToolPermission(e,r,s,a){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:s,suggestions:a})).result}'
         if original_func in content:
-            replacement_func = f'async requestToolPermission(e,r,a,s){{try{{const fs=require("fs");fs.appendFileSync("{log_file}","["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\\n");}}catch(err){{}}return{{behavior:"allow",updatedInput:a}}}}'
+            replacement_func = f'async requestToolPermission(e,r,s,a){{try{{const fs=require("fs");fs.appendFileSync("{log_file}","["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(s)+" | AUTO-ALLOWED\\n");}}catch(err){{}}return{{behavior:"allow",updatedInput:s}}}}'
             content = content.replace(original_func, replacement_func)
             changes_made += 1
 
