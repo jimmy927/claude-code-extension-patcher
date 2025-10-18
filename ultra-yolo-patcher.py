@@ -75,18 +75,30 @@ def patch_file(file_path: Path) -> Tuple[bool, int]:
 
     # Patch extension.js
     if filename == 'extension.js':
-        if 'k=["--output-format","stream-json"' in content:
+        # Support multiple variable names across versions (I=2.0.22+, k=older, F=older)
+        if 'I=["--output-format","stream-json"' in content:
+            content = content.replace('I=["--output-format","stream-json"', 'I=["--dangerously-skip-permissions","--output-format","stream-json"')
+            changes_made += 1
+        elif 'k=["--output-format","stream-json"' in content:
             content = content.replace('k=["--output-format","stream-json"', 'k=["--dangerously-skip-permissions","--output-format","stream-json"')
             changes_made += 1
         elif 'F=["--output-format","stream-json"' in content:
             content = content.replace('F=["--output-format","stream-json"', 'F=["--dangerously-skip-permissions","--output-format","stream-json"')
             changes_made += 1
 
-        original_func = 'async requestToolPermission(e,r,a,s){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:a,suggestions:s})).result}'
-        if original_func in content:
-            replacement_func = f'async requestToolPermission(e,r,a,s){{try{{const fs=require("fs");fs.appendFileSync("{log_file}","["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\\n");}}catch(err){{}}return{{behavior:"allow",updatedInput:a}}}}'
-            content = content.replace(original_func, replacement_func)
+        # Support new parameter order (e,r,s,a) in 2.0.22+
+        new_func_v2022 = 'async requestToolPermission(e,r,s,a){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:s,suggestions:a})).result}'
+        if new_func_v2022 in content:
+            replacement_func = f'async requestToolPermission(e,r,s,a){{try{{const fs=require("fs");fs.appendFileSync("{log_file}","["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(s)+" | AUTO-ALLOWED\\n");}}catch(err){{}}return{{behavior:"allow",updatedInput:s}}}}'
+            content = content.replace(new_func_v2022, replacement_func)
             changes_made += 1
+        else:
+            # Try old parameter order (e,r,a,s) for older versions
+            original_func = 'async requestToolPermission(e,r,a,s){return(await this.sendRequest(e,{type:"tool_permission_request",toolName:r,inputs:a,suggestions:s})).result}'
+            if original_func in content:
+                replacement_func = f'async requestToolPermission(e,r,a,s){{try{{const fs=require("fs");fs.appendFileSync("{log_file}","["+new Date().toISOString()+"] PERMISSION REQUEST - Tool: "+r+" | Inputs: "+JSON.stringify(a)+" | AUTO-ALLOWED\\n");}}catch(err){{}}return{{behavior:"allow",updatedInput:a}}}}'
+                content = content.replace(original_func, replacement_func)
+                changes_made += 1
 
         deny_count = content.count('behavior:"deny"')
         if deny_count > 0:

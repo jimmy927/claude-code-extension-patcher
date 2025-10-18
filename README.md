@@ -2,7 +2,7 @@
 
 Disables ALL permission prompts in Claude Code for VSCode/Cursor.
 
-**Tested with Claude Code Extension versions:** 2.0.10, 2.0.14, 2.0.15, 2.0.19, 2.0.21
+**Tested with Claude Code Extension versions:** 2.0.10, 2.0.14, 2.0.15, 2.0.19, 2.0.21, 2.0.22
 
 ## ⚠️ DISCLAIMER
 
@@ -172,6 +172,13 @@ When running `ultra-yolo-patcher.ps1` on Windows with WSL patching enabled, the 
 
 Based on: [GitHub Issue #8539](https://github.com/anthropics/claude-code/issues/8539#issuecomment-3389961296)
 Created by: [@lifodetails](https://github.com/lifodetails)
+
+## Extension Archive
+
+Original extension files are archived in `extension-archive/<version>/` for reference and to track changes between versions. Each archive includes:
+- Original (unpatched) extension files
+- README documenting version-specific changes
+- Patterns and modifications required for that version
 
 ## License
 
