@@ -4,6 +4,30 @@ Disables ALL permission prompts in Claude Code for VSCode/Cursor.
 
 **Tested with Claude Code Extension versions:** 2.0.10, 2.0.14, 2.0.15, 2.0.19, 2.0.21, 2.0.22, 2.0.24, 2.0.25
 
+## 🎉 OFFICIAL SOLUTION NOW AVAILABLE
+
+**As of recent Claude Code versions, Anthropic has added official settings to bypass permissions!** This patcher is **no longer necessary** for most users and i have stopped maintaing it.
+
+![Claude Code Settings](cc-extension.png)
+
+### Use Official Settings Instead
+
+Go to VSCode/Cursor Settings and search for "claudeCode":
+
+1. ✅ Enable **"Claude Code: Allow Dangerously Skip Permissions"**
+2. ✅ Set **"Claude Code: Initial Permission Mode"** to `bypassPermissions`
+
+**Why use official settings?**
+- ✅ No need to patch extension files
+- ✅ Survives extension updates automatically
+- ✅ Officially supported by Anthropic
+- ✅ Easier to enable/disable
+
+**When to use this patcher:**
+- never ?
+
+Based on [GitHub Issue #8539](https://github.com/anthropics/claude-code/issues/8539), the community requested this feature and Anthropic delivered!
+
 ## ⚠️ DISCLAIMER
 
 **USE AT YOUR OWN RISK** - Bypasses ALL safety checks. Unofficial and unsupported.
